@@ -84,33 +84,35 @@ class ImpactMetricsService
      * @return list<array{m: string, meals: int, waste_tons: float, waste_kg: float}>
      */
     public function monthlyTrendForYear(int $year): array
-    {
-        $rows = $this->impactOrdersQuery()
-            ->select([
-                DB::raw('MONTH(created_at) as m'),
-                DB::raw('COUNT(*) as meals'),
-            ])
-            ->whereYear('created_at', $year)
-            ->groupBy(DB::raw('MONTH(created_at)'))
-            ->get()
-            ->keyBy(fn ($row) => (int) $row->m);
+{
+    $rows = $this->impactOrdersQuery()
+        ->select([
+            DB::raw('EXTRACT(MONTH FROM created_at) as m'),
+            DB::raw('COUNT(*) as meals'),
+        ])
+        ->whereYear('created_at', $year)
+        ->groupBy(DB::raw('EXTRACT(MONTH FROM created_at)'))
+        ->get()
+        ->keyBy(fn ($row) => (int) $row->m);
 
-        $labels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        $out = [];
-        $lastMonth = $year === (int) now()->year ? (int) now()->month : 12;
-        for ($month = 1; $month <= $lastMonth; $month++) {
-            $meals = (int) ($rows->get($month)?->meals ?? 0);
-            $wasteKg = $meals * self::WASTE_KG_PER_BOX;
-            $out[] = [
-                'm' => $labels[$month],
-                'meals' => $meals,
-                'waste_kg' => round($wasteKg, 1),
-                'waste_tons' => round($wasteKg / 1000, 3),
-            ];
-        }
+    $labels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    $out = [];
+    $lastMonth = $year === (int) now()->year ? (int) now()->month : 12;
 
-        return $out;
+    for ($month = 1; $month <= $lastMonth; $month++) {
+        $meals = (int) ($rows->get($month)?->meals ?? 0);
+        $wasteKg = $meals * self::WASTE_KG_PER_BOX;
+
+        $out[] = [
+            'm' => $labels[$month],
+            'meals' => $meals,
+            'waste_kg' => round($wasteKg, 1),
+            'waste_tons' => round($wasteKg / 1000, 3),
+        ];
     }
+
+    return $out;
+}
 
     public function trendYearLabel(?int $year = null): string
     {
