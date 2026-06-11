@@ -3,14 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\CheckoutOrder;
 use App\Models\Customer;
 use App\Models\Menu;
 use App\Models\User;
 use App\Services\CartAfterPaymentService;
-use App\Services\MenuStockService;
 use App\Services\CatalogRepository;
 use App\Services\ImpactMetricsService;
+use App\Services\MenuStockService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,11 +33,35 @@ class SurpriseBiteController extends Controller
     {
         $state = $request->session()->get("checkout.$slug", []);
 
-        if (!is_array($state)) {
+        if (! is_array($state)) {
             $state = [];
         }
 
-        return array_replace($this->defaultCheckoutState(), $state);
+        $merged = array_replace($this->defaultCheckoutState(), $state);
+        $merged['item_quantity'] = $this->cartQuantityForBoxSlug(Auth::user(), $slug);
+
+        return $merged;
+    }
+
+    /**
+     * Stok > 0 tetap di atas; habis di bawah (urutan sort tetap dalam tiap kelompok).
+     *
+     * @param  array<int, array<string, mixed>>  $boxes
+     * @return array<int, array<string, mixed>>
+     */
+    private function boxesAvailableFirstStockLast(array $boxes): array
+    {
+        $inStock = [];
+        $outStock = [];
+        foreach ($boxes as $b) {
+            if ((int) ($b['stock'] ?? 0) > 0) {
+                $inStock[] = $b;
+            } else {
+                $outStock[] = $b;
+            }
+        }
+
+        return array_merge($inStock, $outStock);
     }
 
     /**
@@ -49,7 +74,7 @@ class SurpriseBiteController extends Controller
 
     private function moneyIDR(int $amount): string
     {
-        return 'Rp ' . number_format($amount, 0, ',', '.');
+        return 'Rp '.number_format($amount, 0, ',', '.');
     }
 
     private function findBox(string $slug): array
@@ -156,6 +181,8 @@ class SurpriseBiteController extends Controller
             return $this->boxMatchesSearchQuery($q, $box, $restaurant);
         }));
 
+        $boxes = $this->boxesAvailableFirstStockLast($boxes);
+
         return view('surprisebite.home', [
             ...$catalog,
             ...$this->getImpactMetrics(),
@@ -165,6 +192,7 @@ class SurpriseBiteController extends Controller
             'q' => $q,
             'catalogHash' => app(CatalogRepository::class)->catalogFingerprint(),
             'money' => fn (int $n) => $this->moneyIDR($n),
+            'pendingRatingBySlug' => $this->pendingRatingBySlugForCustomer(),
         ]);
     }
 
@@ -182,7 +210,7 @@ class SurpriseBiteController extends Controller
         $maxPrice = max(10000, min(200000, $maxPrice));
 
         $sort = (string) $request->query('sort', 'nearest');
-        if (!in_array($sort, ['nearest', 'price', 'rating'], true)) {
+        if (! in_array($sort, ['nearest', 'price', 'rating'], true)) {
             $sort = 'nearest';
         }
 
@@ -213,6 +241,8 @@ class SurpriseBiteController extends Controller
             };
         });
 
+        $boxes = $this->boxesAvailableFirstStockLast($boxes);
+
         $filterLabels = [
             'all' => 'All',
             'bakery' => 'Bakery',
@@ -234,6 +264,7 @@ class SurpriseBiteController extends Controller
             'filterLabels' => $filterLabels,
             'catalogHash' => app(CatalogRepository::class)->catalogFingerprint(),
             'money' => fn (int $n) => $this->moneyIDR($n),
+            'pendingRatingBySlug' => $this->pendingRatingBySlugForCustomer(),
         ]);
     }
 
@@ -252,16 +283,26 @@ class SurpriseBiteController extends Controller
         $box = $this->findBox($slug);
         $restaurant = $this->findRestaurant($box['restaurant_id']);
 
+        $pending = $this->pendingRatingBySlugForCustomer();
+
         return view('surprisebite.box', [
             'box' => $box,
             'restaurant' => $restaurant,
             'money' => fn (int $n) => $this->moneyIDR($n),
+            'pendingRatingOrderId' => $pending[$slug] ?? null,
         ]);
     }
 
-    public function checkoutDelivery(Request $request, string $slug): View
+    public function checkoutDelivery(Request $request, string $slug): View|RedirectResponse
     {
         $box = $this->findBox($slug);
+
+        if ((int) ($box['stock'] ?? 0) <= 0) {
+            return redirect()
+                ->route('boxes.show', ['slug' => $slug])
+                ->with('status', 'Menu tidak dapat ditambahkan karena stok tidak tersedia.');
+        }
+
         $restaurant = $this->findRestaurant($box['restaurant_id']);
 
         $state = $this->getCheckoutState($request, $slug);
@@ -276,6 +317,14 @@ class SurpriseBiteController extends Controller
 
     public function checkoutDeliverySubmit(Request $request, string $slug): RedirectResponse
     {
+        $box = $this->findBox($slug);
+
+        if ((int) ($box['stock'] ?? 0) <= 0) {
+            return redirect()
+                ->route('boxes.show', ['slug' => $slug])
+                ->with('status', 'Menu tidak dapat ditambahkan karena stok tidak tersedia.');
+        }
+
         $validated = $request->validate([
             'method' => ['required', 'in:pickup,delivery'],
             'address' => ['nullable', 'string', 'max:200'],
@@ -291,9 +340,16 @@ class SurpriseBiteController extends Controller
         return redirect()->route('checkout.payment', ['slug' => $slug]);
     }
 
-    public function checkoutPayment(Request $request, string $slug): View
+    public function checkoutPayment(Request $request, string $slug): View|RedirectResponse
     {
         $box = $this->findBox($slug);
+
+        if ((int) ($box['stock'] ?? 0) <= 0) {
+            return redirect()
+                ->route('boxes.show', ['slug' => $slug])
+                ->with('status', 'Menu tidak dapat ditambahkan karena stok tidak tersedia.');
+        }
+
         $restaurant = $this->findRestaurant($box['restaurant_id']);
 
         $state = $this->getCheckoutState($request, $slug);
@@ -313,6 +369,13 @@ class SurpriseBiteController extends Controller
         ]);
 
         $box = $this->findBox($slug);
+
+        if ((int) ($box['stock'] ?? 0) <= 0) {
+            return redirect()
+                ->route('boxes.show', ['slug' => $slug])
+                ->with('status', 'Menu tidak dapat ditambahkan karena stok tidak tersedia.');
+        }
+
         $restaurant = $this->findRestaurant($box['restaurant_id']);
         $state = $this->getCheckoutState($request, $slug);
 
@@ -344,7 +407,7 @@ class SurpriseBiteController extends Controller
                 ->with('status', 'Silakan login sebagai pelanggan untuk menyelesaikan pesanan.');
         }
 
-        $qty = $this->cartQuantityForBoxSlug($laravelUser, $slug);
+        $qty = max(1, (int) ($state['item_quantity'] ?? 1));
         $mitraMenuId = MenuStockService::parseMitraMenuId($slug);
         if ($mitraMenuId !== null) {
             $menu = Menu::query()->find($mitraMenuId);
@@ -400,10 +463,17 @@ class SurpriseBiteController extends Controller
 
         $state = $this->getCheckoutState($request, $slug);
 
+        $order = null;
+        $oid = $state['order_id'] ?? null;
+        if (is_string($oid) && $oid !== '') {
+            $order = CheckoutOrder::query()->where('public_order_id', $oid)->first();
+        }
+
         return view('surprisebite.checkout.success', [
             'box' => $box,
             'restaurant' => $restaurant,
             'state' => $state,
+            'order' => $order,
             'money' => fn (int $n) => $this->moneyIDR($n),
         ]);
     }
@@ -450,12 +520,16 @@ class SurpriseBiteController extends Controller
             return 1;
         }
 
-        $cart = Cart::query()->where('user_id', $user->id)->first();
-        if (! $cart) {
+        $cartId = Cart::query()->where('user_id', $user->id)->value('id');
+        if (! $cartId) {
             return 1;
         }
 
-        $item = $cart->items()->where('box_slug', $slug)->first();
+        $item = CartItem::query()
+            ->where('cart_id', $cartId)
+            ->where('box_slug', $slug)
+            ->first();
+
         if (! $item) {
             return 1;
         }
@@ -463,16 +537,41 @@ class SurpriseBiteController extends Controller
         return max(1, (int) $item->quantity);
     }
 
+    /**
+     * Slug mystery box → order publik yang belum diulas (pelanggan login).
+     *
+     * @return array<string, string>
+     */
+    private function pendingRatingBySlugForCustomer(): array
+    {
+        $user = Auth::user();
+        if (! $user || $user->role !== 'customer') {
+            return [];
+        }
+
+        return CheckoutOrder::query()
+            ->where('customer_email', $user->email)
+            ->where('fulfillment_status', 'completed')
+            ->where('reviewed', false)
+            ->whereNotNull('box_slug')
+            ->whereNotIn('payment_status', ['DENIED', 'CANCELED', 'EXPIRED'])
+            ->orderByDesc('id')
+            ->get()
+            ->unique('box_slug')
+            ->mapWithKeys(fn (CheckoutOrder $o) => [$o->box_slug => $o->public_order_id])
+            ->all();
+    }
+
     private function generateUniquePublicOrderId(): string
     {
         for ($i = 0; $i < 10; $i++) {
-            $id = 'ORD-' . str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT);
+            $id = 'ORD-'.str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT);
             if (! CheckoutOrder::where('public_order_id', $id)->exists()) {
                 return $id;
             }
         }
 
-        return 'ORD-' . str_replace('.', '', uniqid('', true));
+        return 'ORD-'.str_replace('.', '', uniqid('', true));
     }
 
     public function adminImpact(): View
@@ -514,4 +613,3 @@ class SurpriseBiteController extends Controller
         ];
     }
 }
-

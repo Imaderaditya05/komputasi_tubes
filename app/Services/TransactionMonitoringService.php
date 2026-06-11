@@ -20,7 +20,16 @@ class TransactionMonitoringService
             return 'completed';
         }
 
-        if ($paymentStatus === 'pending') {
+        // Treat various "waiting for payment" statuses as pending
+        $pendingStatuses = [
+            'pending',
+            'PENDING',
+            'PENDING_PAYMENT',
+            'AWAITING_PAYMENT',
+            'awaiting_payment',
+        ];
+        
+        if (in_array($paymentStatus, $pendingStatuses, true)) {
             return 'pending';
         }
 
@@ -58,7 +67,7 @@ class TransactionMonitoringService
 
         if ($search !== '') {
             $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $search).'%';
-            $q->where(function (Builder $inner) use ($term): void {
+            $q->where(function (Builder $inner) use ($term, $search): void {
                 $inner->where('public_order_id', 'like', $term)
                     ->orWhere('midtrans_transaction_id', 'like', $term)
                     ->orWhere('restaurant_name', 'like', $term)
@@ -71,6 +80,11 @@ class TransactionMonitoringService
                         $c->where('name', 'like', $term)
                             ->orWhere('email', 'like', $term);
                     });
+                
+                // Support searching by TRX-{id} format
+                if (preg_match('/^TRX-(\d+)$/i', trim($search), $matches)) {
+                    $inner->orWhere('id', '=', (int) $matches[1]);
+                }
             });
         }
 

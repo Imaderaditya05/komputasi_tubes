@@ -27,6 +27,11 @@
             </div>
 
             <div class="border-b border-slate-200 bg-white px-5 py-5 sm:px-6">
+                @php
+                    $checkoutQty = max(1, (int) ($state['item_quantity'] ?? 1));
+                    $unitPrice = (int) $box['price'];
+                    $lineTotal = $unitPrice * $checkoutQty;
+                @endphp
                 <div class="flex items-center gap-2 text-sm font-black text-[#1e2939]">
                     <x-sb.icon name="package" class="h-5 w-5 shrink-0 text-[#00a63e]" aria-hidden="true" />
                     Order Summary
@@ -41,6 +46,10 @@
                         <span class="font-bold text-[#1e2939]">{{ $box['title'] }}</span>
                     </div>
                     <div class="flex justify-between gap-4">
+                        <span class="text-[#6a7282]">Jumlah</span>
+                        <span class="font-bold text-[#1e2939]">{{ $checkoutQty }} × {{ $money($unitPrice) }}</span>
+                    </div>
+                    <div class="flex justify-between gap-4">
                         <span class="text-[#6a7282]">Pickup Time</span>
                         <span class="font-bold text-[#1e2939]">{{ $box['pickup_time'] }}</span>
                     </div>
@@ -48,7 +57,7 @@
                 <div class="my-4 border-t border-slate-200"></div>
                 <div class="flex items-end justify-between">
                     <span class="text-sm font-black text-[#1e2939]">Total</span>
-                    <span class="text-2xl font-black text-[#00a63e]">{{ $money($box['price']) }}</span>
+                    <span class="text-2xl font-black text-[#00a63e]">{{ $money($lineTotal) }}</span>
                 </div>
             </div>
 

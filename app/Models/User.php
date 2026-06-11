@@ -8,13 +8,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'password', 'role', 'phone', 'is_active', 'avatar_path', 'address'])]
+#[Fillable(['name', 'email', 'password', 'role', 'phone', 'is_active', 'avatar_path', 'address', 'mitra_approval_status', 'mitra_approval_decided_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -32,6 +32,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'mitra_approval_decided_at' => 'datetime',
         ];
     }
 
@@ -72,5 +73,17 @@ class User extends Authenticatable
     public function wishlistItems(): HasMany
     {
         return $this->hasMany(WishlistItem::class);
+    }
+
+    /** Mitra boleh mengakses portal bisnis (/mitra/dashboard, dll.) — termasuk akun mitra lawas sebelum ada kolom status. */
+    public function mitraApprovedForPortal(): bool
+    {
+        if ($this->role !== 'mitra') {
+            return true;
+        }
+
+        $s = $this->mitra_approval_status;
+
+        return $s === null || $s === 'approved';
     }
 }

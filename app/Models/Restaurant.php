@@ -21,6 +21,7 @@ class Restaurant extends Model
         'latitude',
         'longitude',
         'pin',
+        'access_status',
     ];
 
     protected $hidden = [
@@ -48,5 +49,40 @@ class Restaurant extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(MitraOrder::class);
+    }
+
+    /**
+     * @return HasMany<MitraAccessAppeal, $this>
+     */
+    public function accessAppeals(): HasMany
+    {
+        return $this->hasMany(MitraAccessAppeal::class, 'restaurant_id');
+    }
+
+    /**
+     * @return array{label: string, classes: string}
+     */
+    public function mitraAccessBadge(): array
+    {
+        $st = $this->access_status ?? 'active';
+
+        return match ($st) {
+            'locked' => [
+                'label' => '🔒 Locked',
+                'classes' => 'bg-red-500 text-white shadow',
+            ],
+            'pending' => [
+                'label' => 'Pending',
+                'classes' => 'bg-amber-500 text-white shadow',
+            ],
+            'active' => [
+                'label' => '✓ Unlocked',
+                'classes' => 'bg-emerald-500 text-white shadow',
+            ],
+            default => [
+                'label' => 'Pending',
+                'classes' => 'bg-amber-500 text-white shadow',
+            ],
+        };
     }
 }

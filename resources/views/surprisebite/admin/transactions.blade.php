@@ -61,7 +61,7 @@
                     <option value="pending" @selected($statusFilter === 'pending')>Pending</option>
                     <option value="failed" @selected($statusFilter === 'failed')>Failed</option>
                 </select>
-                <button type="submit" class="hidden sm:inline-flex rounded-[14px] bg-[#f3f4f6] px-5 py-3 text-sm font-bold text-[#364153] hover:bg-[#e5e7eb]">Cari</button>
+                <button type="submit" class="inline-flex rounded-[14px] bg-[#f3f4f6] px-5 py-3 text-sm font-bold text-[#364153] hover:bg-[#e5e7eb]">Cari</button>
                 <a href="{{ route('admin.transactions', array_filter(['q' => $search, 'status' => $statusFilter, 'export' => 1])) }}"
                    class="inline-flex items-center gap-2 rounded-[14px] bg-gradient-to-r from-[#00a63e] to-[#00bc7d] px-5 py-3 text-base font-bold text-white shadow-md hover:opacity-95">
                     <x-sb.icon name="arrow-down-tray" class="h-5 w-5" aria-hidden="true" />

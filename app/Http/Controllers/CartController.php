@@ -117,6 +117,10 @@ class CartController extends Controller
 
         $boxData = $catalog[$boxSlug];
 
+        if ((int) ($boxData['stock'] ?? 0) <= 0) {
+            return back()->withErrors(['stock' => 'Menu tidak dapat ditambahkan karena stok tidak tersedia.'])->withInput();
+        }
+
         if ($quantity > $boxData['stock']) {
             return back()->withErrors(['quantity' => "Quantity melebihi stok tersedia ({$boxData['stock']})"])->withInput();
         }

@@ -11,10 +11,11 @@
         'stock' => (int) $menu->stock,
         'pickup_time' => $menu->pickup_time,
         'image_url' => $menu->image_url,
+        'savings_percent' => $pct,
     ];
 @endphp
 <div
-    class="mystery-card flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:shadow-md"
+    class="mystery-card group flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:border-emerald-200 hover:shadow-md"
     data-menu-id="{{ $menu->id }}"
     data-menu='@json($menuJson)'
 >
@@ -44,9 +45,20 @@
                 <dt class="text-slate-500">Waktu Pickup</dt>
                 <dd class="font-semibold text-slate-700" data-field="pickup">{{ $menu->pickup_time ?: '—' }}</dd>
             </div>
+            @if ((int) ($menu->ratings_count ?? 0) > 0 && $menu->avg_rating !== null)
+                <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">Rating pembeli</dt>
+                    <dd class="font-bold text-amber-600" data-field="buyer-rating">
+                        ★ {{ number_format((float) $menu->avg_rating, 1) }}
+                        <span class="text-xs font-semibold text-slate-500">({{ (int) $menu->ratings_count }} ulasan)</span>
+                    </dd>
+                </div>
+            @endif
         </dl>
 
-        <div class="mt-4 flex gap-2">
+        <p class="mt-2 text-center text-xs font-medium text-slate-400 opacity-0 transition group-hover:opacity-100 sm:opacity-100">Klik di luar tombol untuk detail</p>
+
+        <div class="mt-3 flex gap-2">
             <button type="button" class="btn-edit-mystery inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#00a63e] to-[#00bc7d] py-2.5 text-sm font-bold text-white shadow">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 Edit

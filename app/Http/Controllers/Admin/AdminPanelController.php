@@ -5,10 +5,17 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AdminRestaurant;
 use App\Models\CheckoutOrder;
+use App\Models\CustomerPartnerReport;
+use App\Models\MitraAccessAppeal;
+use App\Models\Restaurant;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\AdminUserListService;
+use App\Services\RestaurantManagementListingService;
 use App\Services\TransactionMonitoringService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -63,7 +70,7 @@ class AdminPanelController extends Controller
                     fputcsv($out, [
                         $order->midtrans_transaction_id ?: 'TRX-'.$order->id,
                         $order->public_order_id,
-                        $order->user?->name ?? $order->customer?->name ?? $order->customer_email,
+                        $order->customer?->name ?? $order->user?->name ?? ($order->customer_email ? explode('@', $order->customer_email)[0] : '—'),
                         $order->restaurant_name,
                         $order->amount_idr,
                         $order->payment_method,
@@ -93,37 +100,83 @@ class AdminPanelController extends Controller
     public function restaurants(Request $request): View
     {
         $q = trim((string) $request->query('q', ''));
+        $listingSvc = new RestaurantManagementListingService;
+        $filter = (string) $request->query('filter', 'all');
+        $filter = in_array($filter, ['all', 'active', 'pending', 'locked', 'with_boxes'], true) ? $filter : 'all';
+        $entries = $listingSvc->entries($q, $filter);
+        $stats = $listingSvc->stats();
 
-        $query = AdminRestaurant::query()->orderBy('sort_order')->orderBy('id');
+        $pendingAccessAppeals = MitraAccessAppeal::query()
+            ->where('status', 'pending')
+            ->with(['restaurant', 'user'])
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get();
 
-        if ($q !== '') {
-            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $q).'%';
-            $query->where(function ($w) use ($term): void {
-                $w->where('name', 'like', $term)
-                    ->orWhere('area', 'like', $term)
-                    ->orWhere('city', 'like', $term);
-            });
-        }
+        $pendingCustomerReports = CustomerPartnerReport::query()
+            ->pending()
+            ->with(['reporter'])
+            ->orderByDesc('id')
+            ->limit(30)
+            ->get();
 
-        $list = $query->get();
-
-        $totalRestaurants = AdminRestaurant::count();
-        $totalBoxes = (int) AdminRestaurant::query()->get()->sum(function (AdminRestaurant $r) {
-            return is_array($r->boxes_json) ? count($r->boxes_json) : 0;
-        });
-        $activeCount = AdminRestaurant::where('status', 'active')->count();
-        $pendingCount = AdminRestaurant::where('status', 'pending')->count();
+        // Fetch pending mitra users who need approval
+        $pendingMitraUsers = User::query()
+            ->where('role', 'mitra')
+            ->where('mitra_approval_status', 'pending')
+            ->orderByDesc('created_at')
+            ->limit(30)
+            ->get();
 
         return view('surprisebite.admin.restaurants', [
-            'restaurants' => $list,
+            'entries' => $entries,
             'q' => $q,
-            'stats' => [
-                'total_restaurants' => $totalRestaurants,
-                'total_boxes' => $totalBoxes,
-                'active' => $activeCount,
-                'pending' => $pendingCount,
-            ],
+            'listingFilter' => $filter,
+            'stats' => $stats,
             'money' => $this->moneyIdr(),
+            'pendingAccessAppeals' => $pendingAccessAppeals,
+            'pendingCustomerReports' => $pendingCustomerReports,
+            'pendingMitraUsers' => $pendingMitraUsers,
+        ]);
+    }
+
+    public function updateMitraAccess(Request $request, AdminRestaurant $adminRestaurant): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'string', 'in:active,pending,locked'],
+        ]);
+
+        $adminRestaurant->update([
+            'status' => $validated['status'],
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Status akses mitra berhasil disimpan.',
+            'restaurant' => [
+                'id' => $adminRestaurant->id,
+                'status' => $adminRestaurant->status,
+            ],
+        ]);
+    }
+
+    public function updateMitraRestaurantAccess(Request $request, Restaurant $mitraRestaurant): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'string', 'in:active,pending,locked'],
+        ]);
+
+        $mitraRestaurant->update([
+            'access_status' => $validated['status'],
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Status akses mitra berhasil disimpan.',
+            'restaurant' => [
+                'id' => $mitraRestaurant->id,
+                'status' => $mitraRestaurant->access_status,
+            ],
         ]);
     }
 
@@ -131,14 +184,16 @@ class AdminPanelController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:200'],
+            'owner_name' => ['nullable', 'string', 'max:200'],
             'location' => ['nullable', 'string', 'max:120'],
+            'address_line' => ['nullable', 'string', 'max:500'],
             'image_url' => ['nullable', 'string', 'max:2048'],
             'description' => ['nullable', 'string', 'max:2000'],
             'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
             'reviews' => ['nullable', 'integer', 'min:0'],
             'box_title' => ['nullable', 'string', 'max:200'],
             'box_price' => ['nullable', 'integer', 'min:0'],
-            'status' => ['nullable', 'in:active,pending'],
+            'status' => ['nullable', 'in:active,pending,locked'],
         ]);
 
         $slugBase = Str::slug($validated['name']);
@@ -177,7 +232,9 @@ class AdminPanelController extends Controller
         AdminRestaurant::create([
             'slug' => $slug,
             'name' => $validated['name'],
+            'owner_name' => $validated['owner_name'] ?? null,
             'area' => $validated['location'] ?? '',
+            'address_line' => $validated['address_line'] ?? null,
             'city' => '',
             'rating' => $validated['rating'] ?? 0,
             'reviews_count' => $validated['reviews'] ?? 0,
@@ -195,14 +252,16 @@ class AdminPanelController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:200'],
+            'owner_name' => ['nullable', 'string', 'max:200'],
             'location' => ['nullable', 'string', 'max:120'],
+            'address_line' => ['nullable', 'string', 'max:500'],
             'image_url' => ['nullable', 'string', 'max:2048'],
             'description' => ['nullable', 'string', 'max:2000'],
             'rating' => ['nullable', 'numeric', 'min:0', 'max:5'],
             'reviews' => ['nullable', 'integer', 'min:0'],
             'box_title' => ['nullable', 'string', 'max:200'],
             'box_price' => ['nullable', 'integer', 'min:0'],
-            'status' => ['nullable', 'in:active,pending'],
+            'status' => ['nullable', 'in:active,pending,locked'],
         ]);
 
         $boxes = is_array($adminRestaurant->boxes_json) ? $adminRestaurant->boxes_json : [];
@@ -223,7 +282,13 @@ class AdminPanelController extends Controller
 
         $adminRestaurant->update([
             'name' => $validated['name'],
+            'owner_name' => array_key_exists('owner_name', $validated)
+                ? $validated['owner_name']
+                : $adminRestaurant->owner_name,
             'area' => $validated['location'] ?? $adminRestaurant->area,
+            'address_line' => array_key_exists('address_line', $validated)
+                ? $validated['address_line']
+                : $adminRestaurant->address_line,
             'rating' => $validated['rating'] ?? $adminRestaurant->rating,
             'reviews_count' => $validated['reviews'] ?? $adminRestaurant->reviews_count,
             'description' => $validated['description'] ?? '',
@@ -244,60 +309,69 @@ class AdminPanelController extends Controller
 
     public function users(Request $request): View
     {
-        $q = trim((string) $request->query('q', ''));
-        $roleFilter = $request->query('role');
-        $roleFilter = in_array($roleFilter, ['customer', 'seller', 'mitra', 'admin'], true) ? $roleFilter : null;
-
-        $base = User::query()->orderByDesc('created_at');
-
-        if ($q !== '') {
-            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $q).'%';
-            $base->where(function ($w) use ($term): void {
-                $w->where('name', 'like', $term)->orWhere('email', 'like', $term);
-            });
-        }
-
-        if ($roleFilter) {
-            $base->where('role', $roleFilter);
-        }
-
-        $users = $base->paginate(20)->withQueryString();
-
-        $orderCounts = [];
-        if (Schema::hasTable('checkout_orders')) {
-            foreach ($users as $u) {
-                $orderCounts[$u->id] = CheckoutOrder::where('customer_email', $u->email)->count();
-            }
-        }
-
-        $activeUsers = Schema::hasColumn('users', 'is_active')
-            ? User::where(function ($q): void {
-                $q->where('is_active', true)->orWhereNull('is_active');
-            })->count()
-            : User::count();
-
-        $stats = [
-            'total' => User::count(),
-            'customers' => User::where('role', 'customer')->count(),
-            'sellers' => User::whereIn('role', ['seller', 'mitra'])->count(),
-            'active' => $activeUsers,
-        ];
+        $listSvc = new AdminUserListService;
+        $data = $listSvc->paginatedForAdmin($request);
+        $stats = $listSvc->stats();
 
         return view('surprisebite.admin.users', [
-            'users' => $users,
-            'q' => $q,
-            'roleFilter' => $roleFilter,
-            'orderCounts' => $orderCounts,
+            'users' => $data['users'],
+            'q' => $data['q'],
+            'roleFilter' => $data['roleFilter'],
+            'orderCounts' => $data['orderCounts'],
             'stats' => $stats,
+            'activeListFilter' => $data['activeListFilter'],
         ]);
     }
 
-    public function updateUser(Request $request, User $user): RedirectResponse
+    public function storeUser(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', 'in:customer,seller,mitra'],
+            'is_active' => ['required', 'in:0,1'],
+        ]);
+
+        $payload = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
+            'password' => $validated['password'],
+            'role' => $validated['role'],
+            'is_active' => (bool) (int) $validated['is_active'],
+        ];
+
+        if ($validated['role'] === 'mitra' && Schema::hasColumn('users', 'mitra_approval_status')) {
+            $payload['mitra_approval_status'] = 'approved';
+            $payload['mitra_approval_decided_at'] = now();
+        }
+
+        User::create($payload);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Pengguna berhasil ditambahkan.',
+            ]);
+        }
+
+        return redirect()->route('admin.users')->with('status', 'Pengguna berhasil ditambahkan.');
+    }
+
+    public function updateUser(Request $request, User $user): JsonResponse|RedirectResponse
     {
         $actor = $request->user();
         $isSelf = $actor && $actor->id === $user->id;
 
         if ($user->role === 'admin' && ! $isSelf) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Tidak dapat mengedit akun admin lain.',
+                ], 403);
+            }
+
             return redirect()->route('admin.users')->with('status', 'Tidak dapat mengedit akun admin lain.');
         }
 
@@ -313,6 +387,8 @@ class AdminPanelController extends Controller
 
         $validated = $request->validate($rules);
 
+        $previousRole = (string) $user->role;
+
         $user->fill([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -323,9 +399,68 @@ class AdminPanelController extends Controller
             $user->role = $validated['role'];
         }
 
+        $newRole = (string) $user->role;
+        if (
+            $previousRole !== 'mitra'
+            && $newRole === 'mitra'
+            && Schema::hasColumn('users', 'mitra_approval_status')
+        ) {
+            $user->mitra_approval_status = 'pending';
+            $user->mitra_approval_decided_at = null;
+        }
+
         $user->save();
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Pengguna diperbarui.',
+            ]);
+        }
+
         return redirect()->route('admin.users')->with('status', 'Pengguna diperbarui.');
+    }
+
+    public function updateMitraApproval(Request $request, User $user): RedirectResponse|JsonResponse
+    {
+        if ($user->role !== 'mitra') {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'mitra_approval_status' => ['required', 'string', 'in:pending,approved,rejected'],
+        ]);
+
+        if (! Schema::hasColumn('users', 'mitra_approval_status')) {
+            abort(404);
+        }
+
+        $next = $validated['mitra_approval_status'];
+
+        $user->mitra_approval_status = $next;
+        $user->mitra_approval_decided_at = in_array($next, ['approved', 'rejected'], true) ? now() : null;
+        $user->save();
+
+        $msg = 'Status persetujuan mitra untuk '.$user->name.' telah diperbarui.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $msg,
+                'user' => [
+                    'id' => $user->id,
+                    'mitra_approval_status' => $user->mitra_approval_status,
+                ],
+            ]);
+        }
+
+        // Redirect back to restaurants page if coming from there, otherwise to users page
+        $referer = $request->header('referer');
+        if ($referer && str_contains($referer, 'admin/restaurants')) {
+            return redirect()->route('admin.restaurants')->with('status', $msg);
+        }
+
+        return redirect()->route('admin.users')->with('status', $msg);
     }
 
     public function toggleUserActive(Request $request, User $user): RedirectResponse
@@ -340,17 +475,51 @@ class AdminPanelController extends Controller
         return redirect()->route('admin.users')->with('status', 'Status pengguna diperbarui.');
     }
 
-    public function destroyUser(Request $request, User $user): RedirectResponse
+    public function destroyUser(Request $request, User $user): JsonResponse|RedirectResponse
     {
         if ($user->id === $request->user()?->id) {
-            return redirect()->route('admin.users')->with('status', 'Tidak dapat menghapus akun Anda sendiri.');
+            $msg = 'Tidak dapat menghapus akun Anda sendiri.';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $msg], 422)
+                : redirect()->route('admin.users')->with('status', $msg);
         }
 
         if ($user->role === 'admin') {
-            return redirect()->route('admin.users')->with('status', 'Tidak dapat menghapus akun admin.');
+            $msg = 'Tidak dapat menghapus akun admin.';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $msg], 422)
+                : redirect()->route('admin.users')->with('status', $msg);
         }
 
-        $user->delete();
+        if (Schema::hasTable('checkout_orders') && CheckoutOrder::where('customer_email', $user->email)->exists()) {
+            $msg = 'User memiliki riwayat pesanan di sistem. Nonaktifkan akun alih-alih menghapus, atau hubungi tim teknis.';
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $msg], 422)
+                : redirect()->route('admin.users')->with('status', $msg);
+        }
+
+        try {
+            $user->delete();
+        } catch (QueryException $e) {
+            $msg = 'Tidak dapat menghapus user karena masih terhubung data lain.';
+            if (str_contains(strtolower($e->getMessage()), 'foreign')) {
+                $msg = 'Tidak dapat menghapus: data user masih dipakai di tabel lain.';
+            }
+
+            return $request->expectsJson()
+                ? response()->json(['message' => $msg], 422)
+                : redirect()->route('admin.users')->with('status', $msg);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Pengguna dihapus.',
+            ]);
+        }
 
         return redirect()->route('admin.users')->with('status', 'Pengguna dihapus.');
     }

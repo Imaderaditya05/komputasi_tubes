@@ -17,6 +17,13 @@
 
             {{-- Order summary --}}
             <div class="border-b border-emerald-100 bg-[#f0fdf4] px-5 py-5 ring-1 ring-inset ring-emerald-200/80 sm:px-6">
+                @php
+                    $checkoutQty = $order
+                        ? max(1, (int) $order->item_quantity)
+                        : max(1, (int) ($state['item_quantity'] ?? 1));
+                    $unitPrice = (int) $box['price'];
+                    $lineTotal = $order ? (int) $order->amount_idr : $unitPrice * $checkoutQty;
+                @endphp
                 <div class="flex items-center gap-2 text-sm font-black text-[#166534]">
                     <x-sb.icon name="package" class="h-5 w-5 shrink-0 text-[#00a63e]" aria-hidden="true" />
                     Order Summary
@@ -31,6 +38,10 @@
                         <span class="font-bold text-[#1e2939]">{{ $box['title'] }}</span>
                     </div>
                     <div class="flex justify-between gap-4">
+                        <span class="text-[#6a7282]">Jumlah</span>
+                        <span class="font-bold text-[#1e2939]">{{ $checkoutQty }} × {{ $money($unitPrice) }}</span>
+                    </div>
+                    <div class="flex justify-between gap-4">
                         <span class="text-[#6a7282]">Pickup Time</span>
                         <span class="font-bold text-[#1e2939]">{{ $box['pickup_time'] }}</span>
                     </div>
@@ -38,7 +49,7 @@
                 <div class="my-4 border-t border-emerald-200/90"></div>
                 <div class="flex items-end justify-between">
                     <span class="text-sm font-black text-[#1e2939]">Total</span>
-                    <span class="text-2xl font-black text-[#00a63e]">{{ $money($box['price']) }}</span>
+                    <span class="text-2xl font-black text-[#00a63e]">{{ $money($lineTotal) }}</span>
                 </div>
             </div>
 

@@ -30,25 +30,40 @@ class ProfileController extends Controller
 
         $baseRules = [
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:32', 'regex:/^[\d\s\+\-\(\)]*$/'],
-            'address' => ['nullable', 'string', 'max:2000'],
+            'phone' => ['required', 'string', 'max:32', 'regex:/^[\d\s\+\-\(\)]*$/'],
+            'address' => ['required', 'string', 'max:2000'],
             'avatar' => ['nullable', 'file', 'max:5120', 'mimes:jpeg,jpg,png,webp,gif'],
             'remove_avatar' => ['nullable', 'boolean'],
+        ];
+
+        $baseMessages = [
+            'name.required' => 'Nama akun wajib diisi.',
+            'phone.required' => 'Nomor telepon wajib diisi.',
+            'phone.regex' => 'Nomor telepon hanya boleh berisi angka, spasi, tanda +, -, atau ().',
+            'address.required' => 'Alamat akun wajib diisi.',
         ];
 
         if ($user->role === 'mitra') {
             $restaurant = Restaurant::where('user_id', $user->id)->orderBy('id')->first();
 
             $rules = $baseRules;
+            $messages = $baseMessages;
             if ($restaurant) {
                 $rules['restaurant_name'] = ['required', 'string', 'max:255'];
                 $rules['description'] = ['nullable', 'string', 'max:2000'];
-                $rules['address_line'] = ['nullable', 'string', 'max:2000'];
-                $rules['latitude'] = ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'];
-                $rules['longitude'] = ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'];
+                $rules['address_line'] = ['required', 'string', 'max:2000'];
+                $rules['latitude'] = ['nullable', 'numeric', 'between:-90,90'];
+                $rules['longitude'] = ['nullable', 'numeric', 'between:-180,180'];
+
+                $messages['restaurant_name.required'] = 'Nama restoran wajib diisi.';
+                $messages['address_line.required'] = 'Alamat toko wajib diisi.';
+                $messages['latitude.numeric'] = 'Latitude harus berupa angka.';
+                $messages['latitude.between'] = 'Latitude harus antara -90 dan 90.';
+                $messages['longitude.numeric'] = 'Longitude harus berupa angka.';
+                $messages['longitude.between'] = 'Longitude harus antara -180 dan 180.';
             }
 
-            $validated = $request->validate($rules);
+            $validated = $request->validate($rules, $messages);
 
             $user->update([
                 'name' => $validated['name'],
@@ -71,7 +86,7 @@ class ProfileController extends Controller
             return redirect()->route('profile.show')->with('status', 'Profil berhasil diperbarui.');
         }
 
-        $validated = $request->validate($baseRules);
+        $validated = $request->validate($baseRules, $baseMessages);
 
         $user->update([
             'name' => $validated['name'],

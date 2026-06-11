@@ -78,10 +78,34 @@ class OrderHistoryController extends Controller
     }
 
     /** Badge utama di kartu "Pesanan aktif" (fulfillment). */
-    public static function formatFulfillmentBadge(?string $paymentStatus, ?string $fulfillment): string
-    {
+    public static function formatFulfillmentBadge(
+        ?string $paymentStatus,
+        ?string $fulfillment,
+        ?string $pickupValidationStatus = null,
+        ?string $fulfillmentMethod = null,
+    ): string {
         if (in_array($paymentStatus, ['PENDING'], true) || ($paymentStatus === null && $fulfillment === 'awaiting_payment')) {
             return 'Menunggu pembayaran';
+        }
+
+        if (($fulfillmentMethod ?? '') === 'pickup'
+            && in_array((string) $fulfillment, CheckoutOrder::FULFILLMENT_PICKUP_VALIDATION_ACTIVE, true)
+        ) {
+            if ($pickupValidationStatus === CheckoutOrder::PICKUP_VALIDATION_PENDING) {
+                return 'Menunggu validasi pickup';
+            }
+            if ($pickupValidationStatus === CheckoutOrder::PICKUP_VALIDATION_EXPIRED) {
+                return 'Validasi pickup kedaluwarsa';
+            }
+            if ($pickupValidationStatus === CheckoutOrder::PICKUP_VALIDATION_VALIDATED) {
+                return match ($fulfillment) {
+                    'ready' => 'Siap Diambil',
+                    'preparing' => 'Sedang disiapkan',
+                    'received' => 'Pesanan diterima',
+                    'pending_confirmation' => 'Menunggu Konfirmasi',
+                    default => 'Diproses',
+                };
+            }
         }
 
         return match ($fulfillment) {
@@ -95,10 +119,26 @@ class OrderHistoryController extends Controller
         };
     }
 
-    public static function formatFulfillmentBadgeClass(?string $paymentStatus, ?string $fulfillment): string
-    {
+    public static function formatFulfillmentBadgeClass(
+        ?string $paymentStatus,
+        ?string $fulfillment,
+        ?string $pickupValidationStatus = null,
+        ?string $fulfillmentMethod = null,
+    ): string {
         if (in_array($paymentStatus, ['PENDING'], true) || $fulfillment === 'awaiting_payment') {
             return 'bg-slate-100 text-slate-700 ring-slate-200';
+        }
+
+        if (($fulfillmentMethod ?? '') === 'pickup'
+            && in_array((string) $fulfillment, CheckoutOrder::FULFILLMENT_PICKUP_VALIDATION_ACTIVE, true)
+        ) {
+            if ($pickupValidationStatus === CheckoutOrder::PICKUP_VALIDATION_PENDING) {
+                return 'bg-amber-50 text-amber-900 ring-amber-200';
+            }
+
+            if ($pickupValidationStatus === CheckoutOrder::PICKUP_VALIDATION_EXPIRED) {
+                return 'bg-red-50 text-red-800 ring-red-200';
+            }
         }
 
         return match ($fulfillment) {

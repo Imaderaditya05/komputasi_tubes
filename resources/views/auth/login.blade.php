@@ -30,7 +30,7 @@
                 <div class="order-1 flex flex-col justify-center px-8 py-10 sm:px-10 lg:order-2 lg:px-12 lg:py-14">
                     <div class="mx-auto w-full max-w-md">
                         <h2 class="text-2xl font-black text-[#1e2939] sm:text-3xl">Login Pelanggan</h2>
-                        <p class="mt-2 text-sm text-[#6a7282]">Gunakan akun pelanggan yang sudah terdaftar. Untuk admin atau mitra, gunakan link di bawah.</p>
+                        <p class="mt-2 text-sm text-[#6a7282]">Gunakan akun pelanggan yang sudah terdaftar. Untuk admin, gunakan Login Admin. Untuk mitra/warung, buka Portal Mitra di bawah.</p>
 
                         <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-semibold leading-relaxed text-amber-950">
                             <span class="font-black">Kamu admin?</span> Jangan pakai form ini. Masuk lewat
@@ -73,8 +73,7 @@
                         </p>
 
                         <p class="mt-6 flex flex-col items-center justify-center space-y-2 text-xs text-[#9ca3af]">
-                            <a href="{{ route('register.mitra') }}" class="font-bold text-[#00a63e] hover:underline">Daftar akun Mitra (warung/resto)</a>
-                            <a href="{{ route('login.seller') }}" class="font-bold text-[#00a63e] hover:underline">Login Mitra (portal penjual)</a>
+                            <a href="{{ route('mitra.portal') }}" class="font-bold text-[#00a63e] hover:underline">Portal Mitra — daftar atau login penjual</a>
                             <a href="{{ route('login.admin') }}" class="font-bold text-[#00a63e] hover:underline">Login Admin</a>
                         </p>
                     </div>

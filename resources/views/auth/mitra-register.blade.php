@@ -33,7 +33,9 @@
                 <div class="order-1 flex flex-col justify-center px-8 py-10 sm:px-10 lg:order-2 lg:px-12 lg:py-14">
                     <div class="mx-auto w-full max-w-md">
                         <h2 class="text-2xl font-black text-[#1e2939] sm:text-3xl">Buat akun mitra</h2>
-                        <p class="mt-2 text-sm text-[#6a7282]">Isi data di bawah. Setelah terdaftar, gunakan email ini di halaman login mitra.</p>
+                        <p class="mt-2 text-sm text-[#6a7282]">
+                            Isi data di bawah. <strong class="font-bold text-[#1e2939]">Pendaftaran akan ditinjau oleh admin dalam 1–3 hari kerja</strong> sebelum Anda dapat mengelola dashboard mitra &amp; restoran setelah menyetujui akun Anda.
+                        </p>
 
                         <form method="post" action="{{ route('register.mitra.submit') }}" class="mt-8 space-y-5">
                             @csrf

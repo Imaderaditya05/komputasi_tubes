@@ -30,7 +30,15 @@ class CheckoutOrder extends Model
         'payment_redirect_url',
         'fulfillment_status',
         'pickup_time',
+        'pickup_validation_status',
+        'pickup_validation_started_at',
+        'pickup_validation_deadline_at',
+        'pickup_validated_at',
+        'pickup_validation_note',
+        'pickup_validated_by',
         'reviewed',
+        'customer_rating',
+        'customer_review_comment',
     ];
 
     protected function casts(): array
@@ -39,13 +47,23 @@ class CheckoutOrder extends Model
             'item_quantity' => 'integer',
             'menu_stock_applied' => 'boolean',
             'reviewed' => 'boolean',
+            'customer_rating' => 'integer',
             'restaurant_latitude' => 'float',
             'restaurant_longitude' => 'float',
             'courier_latitude' => 'float',
             'courier_longitude' => 'float',
             'courier_updated_at' => 'datetime',
+            'pickup_validation_started_at' => 'datetime',
+            'pickup_validation_deadline_at' => 'datetime',
+            'pickup_validated_at' => 'datetime',
         ];
     }
+
+    public const PICKUP_VALIDATION_PENDING = 'pickup_validation_pending';
+
+    public const PICKUP_VALIDATION_VALIDATED = 'pickup_validated';
+
+    public const PICKUP_VALIDATION_EXPIRED = 'pickup_validation_expired';
 
     /** @var list<string> */
     public const FULFILLMENT_SEQUENCE = [
@@ -55,6 +73,24 @@ class CheckoutOrder extends Model
         'ready',
         'completed',
     ];
+
+    /**
+     * Pesanan pickup yang sudah diset/setelah pembayaran (belum selesai): mitra bisa buka jendela validasi pickup di fase ini.
+     *
+     * @var list<string>
+     */
+    public const FULFILLMENT_PICKUP_VALIDATION_ACTIVE = [
+        'pending_confirmation',
+        'received',
+        'preparing',
+        'ready',
+    ];
+
+    public function fulfillmentAllowsPickupValidation(): bool
+    {
+        return $this->fulfillment_method === 'pickup'
+            && in_array((string) $this->fulfillment_status, self::FULFILLMENT_PICKUP_VALIDATION_ACTIVE, true);
+    }
 
     public function isPaidOrCod(): bool
     {

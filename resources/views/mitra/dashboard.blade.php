@@ -39,59 +39,230 @@
             </div>
 
             @if($restaurant)
+                @php
+                    $mitraStatsMenusPayload = $menus->map(fn ($m) => [
+                        'id' => $m->id,
+                        'name' => $m->name,
+                        'stock' => (int) $m->stock,
+                        'price' => (float) $m->price,
+                        'original_price' => (float) $m->original_price,
+                        'savings_percent' => $m->savingsPercent(),
+                    ])->values()->all();
+                @endphp
                 <div
                     id="mitra-live-root"
                     data-mitra-dashboard-live
                     data-mitra-fingerprint="{{ $mitraLiveHash }}"
                     data-mitra-live-url="{{ route('mitra.api.live.restaurant', $restaurant) }}"
+                    data-mitra-sales-period="{{ $salesPeriod }}"
                     data-placeholder-img="{{ $placeholderImg }}"
                 >
                 <!-- Statistik -->
+                <p class="mb-3 text-xs font-semibold text-slate-600">Klik salah satu kartu statistik di bawah untuk melihat rincian lengkap dan tabel per mystery box.</p>
                 <div class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" id="mitra-stats">
-                    <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <div
+                        class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer select-none"
+                        data-stat-card="boxes"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Rincian total mystery box"
+                    >
                         <div class="flex items-center gap-3">
-                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                             </span>
-                            <div>
+                            <div class="min-w-0">
                                 <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Total Mystery Box</p>
                                 <p class="stat-total-boxes text-3xl font-black text-emerald-600" data-value="{{ $stats['total_boxes'] }}">{{ $stats['total_boxes'] }}</p>
+                                <p class="mt-1 text-[11px] font-medium text-slate-400">Klik untuk rincian</p>
                             </div>
                         </div>
                     </div>
-                    <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <div
+                        class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer select-none"
+                        data-stat-card="stock"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Rincian total stok"
+                    >
                         <div class="flex items-center gap-3">
-                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
                             </span>
-                            <div>
+                            <div class="min-w-0">
                                 <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Total Stok</p>
                                 <p class="stat-total-stock text-3xl font-black text-blue-600" data-value="{{ $stats['total_stock'] }}">{{ $stats['total_stock'] }}</p>
+                                <p class="mt-1 max-w-[14rem] text-[11px] font-medium leading-snug text-slate-400">Penjumlahan stok tersisa dari setiap mystery box di bawah (bukan stok per tipe menu saja).</p>
+                                <p class="mt-1 text-[11px] font-medium text-emerald-600/90">Klik untuk rincian</p>
                             </div>
                         </div>
                     </div>
-                    <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <div
+                        class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer select-none"
+                        data-stat-card="revenue"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Rincian estimasi revenue"
+                    >
                         <div class="flex items-center gap-3">
-                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             </span>
-                            <div>
+                            <div class="min-w-0">
                                 <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Estimasi Revenue</p>
                                 <p class="stat-revenue text-2xl font-black text-orange-600 sm:text-3xl" data-value="{{ $stats['revenue_estimate'] }}">{{ $rp($stats['revenue_estimate']) }}</p>
+                                <p class="mt-1 text-[11px] font-medium text-slate-400">Klik untuk rincian</p>
                             </div>
                         </div>
                     </div>
-                    <div class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+                    <div
+                        class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-emerald-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer select-none"
+                        data-stat-card="avg"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Rincian rata-rata hemat"
+                    >
                         <div class="flex items-center gap-3">
-                            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             </span>
-                            <div>
+                            <div class="min-w-0">
                                 <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Avg. Savings</p>
                                 <p class="stat-avg-savings text-2xl font-black text-violet-600 sm:text-3xl" data-value="{{ $stats['avg_savings'] }}">{{ $rp($stats['avg_savings']) }}</p>
+                                <p class="mt-1 text-[11px] font-medium text-slate-400">Klik untuk rincian</p>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {{-- Performa penjualan checkout (sungguhan) --}}
+                <div class="mb-10 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
+                    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-3">
+                                <h2 class="text-xl font-black text-[#1e2939]">Performa Penjualan</h2>
+                                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-600 stat-sales-period-label">{{ $sales['period_label'] ?? '' }}</span>
+                            </div>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                                Omzet dihitung dari pesanan dengan pembayaran <strong>Lunas</strong> atau <strong>COD sah</strong> (selaras penyusutan stok/pemantau dampak platform).
+                                Filter memakai <strong>tanggal pesanan dibuat</strong>; pesanan baru yang belum bayar online akan muncul di «Menunggu bayar (online)».
+                            </p>
+                        </div>
+                        <form method="get" action="{{ route('mitra.dashboard') }}" class="shrink-0">
+                            <label for="sales_period" class="sr-only">Periode statistik penjualan</label>
+                            <select id="sales_period" name="sales_period" onchange="this.form.submit()" class="w-full rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-[#1e2939] shadow-sm outline-none ring-emerald-500/0 transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/15 sm:w-auto lg:min-w-[14rem]">
+                                <option value="today" @selected($salesPeriod === 'today')>Hari ini</option>
+                                <option value="7d" @selected($salesPeriod === '7d')>7 hari terakhir</option>
+                                <option value="30d" @selected($salesPeriod === '30d')>30 hari terakhir</option>
+                                <option value="month" @selected($salesPeriod === 'month')>Bulan ini</option>
+                                <option value="all" @selected($salesPeriod === 'all')>Sepanjang waktu</option>
+                            </select>
+                        </form>
+                    </div>
+
+                    <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                        <div class="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 ring-1 ring-emerald-100/80">
+                            <p class="text-xs font-black uppercase tracking-wide text-emerald-800/70">Omzet</p>
+                            <p class="stat-sales-gross mt-1 text-2xl font-black tracking-tight text-emerald-800" data-value="{{ $sales['gross_idr'] ?? 0 }}">{{ $rp($sales['gross_idr'] ?? 0) }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-5">
+                            <p class="text-xs font-black uppercase tracking-wide text-slate-500">Transaksi lunas/COD</p>
+                            <p class="stat-sales-orders mt-1 text-3xl font-black text-slate-900" data-value="{{ $sales['order_count'] ?? 0 }}">{{ $sales['order_count'] ?? 0 }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-100 bg-white p-5">
+                            <p class="text-xs font-black uppercase tracking-wide text-slate-500">Unit terjual</p>
+                            <p class="stat-sales-units mt-1 text-3xl font-black text-teal-700" data-value="{{ $sales['units_sold'] ?? 0 }}">{{ $sales['units_sold'] ?? 0 }}</p>
+                            <p class="mt-1 text-[11px] text-slate-500">Σ barang dari jumlah per pesanan.</p>
+                        </div>
+                        <div class="rounded-2xl border border-violet-100 bg-violet-50/70 p-5">
+                            <p class="text-xs font-black uppercase tracking-wide text-violet-900/70">Keranjang rata-rata</p>
+                            <p class="stat-sales-aov mt-1 text-2xl font-black text-violet-900" data-value="{{ $sales['avg_order_idr'] ?? 0 }}">{{ $rp($sales['avg_order_idr'] ?? 0) }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-amber-100 bg-amber-50/70 p-5">
+                            <p class="text-xs font-black uppercase tracking-wide text-amber-900/70">Menunggu bayar (online)</p>
+                            <p class="stat-sales-pending-orders mb-1 text-lg font-black text-amber-900" data-value="{{ $sales['pending_gateway_count'] ?? 0 }}">{{ $sales['pending_gateway_count'] ?? 0 }}</p>
+                            <p class="stat-sales-pending-gross text-sm font-bold text-amber-950/85" data-value="{{ $sales['pending_gateway_idr'] ?? 0 }}">{{ $rp($sales['pending_gateway_idr'] ?? 0) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-sm font-semibold text-emerald-900">
+                        <span>Pesanan <strong>penjualan tercatat</strong> yang sudah ditandai <strong>selesai</strong> di checkout: <strong class="stat-sales-completed">{{ (int) ($sales['completed_orders'] ?? 0) }}</strong> transaksi dalam periode.</span>
+                    </div>
+
+                    <div class="overflow-hidden rounded-2xl border border-slate-100">
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 sm:px-5">
+                            <h3 class="text-sm font-black uppercase tracking-wide text-slate-600">Omzet per mystery box</h3>
+                            <a href="{{ route('restaurants.orders.index', $restaurant) }}" class="rounded-full bg-slate-900 px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-slate-800">Kelola &amp; status pesanan</a>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="border-b border-slate-100 bg-white text-[11px] font-black uppercase tracking-wide text-slate-500">
+                                    <tr>
+                                        <th class="whitespace-nowrap px-4 py-3">Menu</th>
+                                        <th class="whitespace-nowrap px-4 py-3">Order</th>
+                                        <th class="whitespace-nowrap px-4 py-3">Unit</th>
+                                        <th class="whitespace-nowrap px-4 py-3">Omzet</th>
+                                        <th class="whitespace-nowrap px-4 py-3 lg:w-56"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                    @forelse ($sales['by_menu'] ?? [] as $row)
+                                        @php($mid = isset($row['menu_id']) && $row['menu_id'] ? (int) $row['menu_id'] : null)
+                                        @php($editHref = $mid ? route('restaurants.menus.edit', [$restaurant, $mid]) : null)
+                                        @php($boxHref = $mid ? route('boxes.show', 'mitra-menu-'.$mid) : null)
+                                        <tr class="transition hover:bg-slate-50/90">
+                                            <td class="px-4 py-3 font-bold text-slate-900">{{ $row['name'] ?? '—' }}</td>
+                                            <td class="px-4 py-3 font-semibold text-slate-800">{{ $row['orders'] ?? 0 }}</td>
+                                            <td class="px-4 py-3 font-semibold text-slate-800">{{ $row['units'] ?? 0 }}</td>
+                                            <td class="whitespace-nowrap px-4 py-3 font-black text-emerald-700">{{ $rp($row['gross_idr'] ?? 0) }}</td>
+                                            <td class="px-4 py-3">
+                                                @if ($boxHref !== null || $editHref !== null)
+                                                    <div class="flex flex-wrap gap-2 justify-end">
+                                                        @if ($boxHref !== null)
+                                                            <a href="{{ $boxHref }}" target="_blank" rel="noopener noreferrer" class="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-black text-white hover:bg-emerald-700">Lihat box</a>
+                                                        @endif
+                                                        @if ($editHref !== null)
+                                                            <a href="{{ $editHref }}" class="rounded-full border-2 border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-[#1e2939] hover:border-emerald-300">Kelola menu</a>
+                                                        @endif
+                                                    </div>
+                                                @else
+                                                    <span class="text-xs text-slate-400">—</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="px-4 py-10 text-center font-semibold text-slate-600">Belum ada penjualan tercatat pada periode ini.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-10 flex flex-wrap gap-3">
+                    <a
+                        href="{{ route('mitra.restaurants.manage', $restaurant) }}"
+                        class="inline-flex items-center justify-center rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-sm font-black text-[#1e2939] shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50/40"
+                    >
+                        Kelola restoran
+                    </a>
+                    <a href="{{ route('restaurants.orders.index', $restaurant) }}" class="inline-flex items-center justify-center rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-800 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-100/80">
+                        Semua pesanan checkout
+                    </a>
+                    <a
+                        href="{{ route('mitra.checkout-deliveries', $restaurant) }}"
+                        class="inline-flex items-center justify-center rounded-2xl bg-orange-500 px-4 py-3 text-sm font-black text-white shadow-md transition hover:bg-orange-600"
+                    >
+                        Pesanan delivery
+                    </a>
+                    <a
+                        href="{{ route('mitra.checkout-pickups.index', $restaurant) }}"
+                        class="inline-flex items-center justify-center rounded-2xl bg-amber-500 px-4 py-3 text-sm font-black text-white shadow-md transition hover:bg-amber-600"
+                    >
+                        Validasi pickup
+                    </a>
                 </div>
 
                 <!-- Mystery Box -->
@@ -267,6 +438,127 @@
             </div>
         </div>
 
+        <!-- Ringkasan statistik (kartu atas) -->
+        <div id="modal-mitra-stats-overview" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" aria-hidden="true">
+            <div class="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
+                <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <div>
+                        <h3 class="text-lg font-black text-[#1e2939]">Ringkasan statistik</h3>
+                        <p class="mt-0.5 text-xs text-slate-500">Angka dihitung dari semua mystery box restoran Anda saat ini.</p>
+                    </div>
+                    <button type="button" class="modal-close rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Tutup">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div id="modal-mitra-stats-body" class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div class="rounded-xl border border-slate-100 bg-emerald-50/50 p-3 text-center">
+                            <p class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Mystery box</p>
+                            <p id="overview-recap-boxes" class="text-2xl font-black text-emerald-600">0</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-100 bg-blue-50/50 p-3 text-center">
+                            <p class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Total stok</p>
+                            <p id="overview-recap-stock" class="text-2xl font-black text-blue-600">0</p>
+                        </div>
+                        <div class="rounded-xl border border-slate-100 bg-orange-50/50 p-3 text-center sm:col-span-2">
+                            <p class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Est. revenue</p>
+                            <p id="overview-recap-revenue" class="text-lg font-black text-orange-600 sm:text-xl">Rp 0</p>
+                        </div>
+                        <div class="col-span-2 rounded-xl border border-slate-100 bg-violet-50/50 p-3 text-center sm:col-span-4">
+                            <p class="text-[10px] font-bold uppercase tracking-wide text-slate-500">Rata-rata hemat / box</p>
+                            <p id="overview-recap-avg" class="text-lg font-black text-violet-600">Rp 0</p>
+                        </div>
+                    </div>
+
+                    <div id="stat-section-boxes" class="mt-6 rounded-xl border border-slate-100 bg-white p-4">
+                        <h4 class="text-sm font-black text-slate-800">Total Mystery Box</h4>
+                        <p class="mt-1 text-sm leading-relaxed text-slate-600">Jumlah entri mystery box yang Anda kelola. Sama dengan jumlah baris pada tabel per box di bawah.</p>
+                    </div>
+                    <div id="stat-section-stock" class="mt-4 rounded-xl border border-slate-100 bg-white p-4">
+                        <h4 class="text-sm font-black text-slate-800">Total Stok</h4>
+                        <p class="mt-1 text-sm leading-relaxed text-slate-600">Semua angka stok dari setiap box dijumlahkan. Jika Anda punya beberapa box, total bisa lebih besar dari stok satu kartu saja.</p>
+                    </div>
+                    <div id="stat-section-revenue" class="mt-4 rounded-xl border border-slate-100 bg-white p-4">
+                        <h4 class="text-sm font-black text-slate-800">Estimasi Revenue</h4>
+                        <p class="mt-1 text-sm leading-relaxed text-slate-600">Perkiraan pendapatan kotor jika <strong>semua unit terjual</strong> pada harga jual saat ini: Σ (harga jual × stok) per mystery box.</p>
+                    </div>
+                    <div id="stat-section-avg" class="mt-4 rounded-xl border border-slate-100 bg-white p-4">
+                        <h4 class="text-sm font-black text-slate-800">Avg. Savings</h4>
+                        <p class="mt-1 text-sm leading-relaxed text-slate-600">Rata-rata nilai hemat per box: rata-rata dari (nilai asli − harga jual) untuk setiap mystery box.</p>
+                    </div>
+
+                    <div class="mt-6">
+                        <h4 class="text-sm font-black text-slate-800">Rincian per mystery box</h4>
+                        <p class="mt-1 text-xs text-slate-500">Data diperbarui otomatis bersama dashboard.</p>
+                        <div class="-mx-1 mt-3 overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-600">
+                                    <tr>
+                                        <th class="px-3 py-2.5">#</th>
+                                        <th class="px-3 py-2.5">Nama</th>
+                                        <th class="px-3 py-2.5 text-right">Stok</th>
+                                        <th class="px-3 py-2.5 text-right">Harga</th>
+                                        <th class="px-3 py-2.5 text-right">Nilai asli</th>
+                                        <th class="px-3 py-2.5 text-right">Hemat %</th>
+                                        <th class="px-3 py-2.5 text-right">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mitra-stats-breakdown-tbody" class="divide-y divide-slate-100 bg-white"></tbody>
+                                <tfoot id="mitra-stats-breakdown-foot" class="border-t-2 border-slate-200 bg-slate-50 font-semibold"></tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal detail -->
+        <div id="modal-mystery-detail" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" aria-hidden="true">
+            <div class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
+                <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+                    <h3 class="text-lg font-black text-[#1e2939]">Detail Mystery Box</h3>
+                    <button type="button" class="modal-close rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Tutup">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div class="space-y-4 px-6 py-4">
+                    <div class="overflow-hidden rounded-xl bg-slate-100">
+                        <img id="detail-img" src="" alt="" class="aspect-[16/10] w-full object-cover">
+                    </div>
+                    <div>
+                        <h4 id="detail-name" class="text-xl font-black text-slate-900"></h4>
+                        <p id="detail-category" class="mt-1 hidden text-sm font-semibold text-emerald-600"></p>
+                        <p id="detail-description" class="mt-2 text-sm leading-relaxed text-slate-600"></p>
+                    </div>
+                    <dl class="space-y-2 rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-sm">
+                        <div class="flex justify-between gap-2">
+                            <dt class="text-slate-500">Harga jual</dt>
+                            <dd id="detail-price" class="font-bold text-emerald-600"></dd>
+                        </div>
+                        <div class="flex justify-between gap-2">
+                            <dt class="text-slate-500">Nilai asli</dt>
+                            <dd id="detail-original" class="text-slate-400 line-through"></dd>
+                        </div>
+                        <div class="flex justify-between gap-2">
+                            <dt class="text-slate-500">Hemat</dt>
+                            <dd id="detail-hemat" class="font-bold text-orange-500"></dd>
+                        </div>
+                        <div class="flex justify-between gap-2">
+                            <dt class="text-slate-500">Stok tersisa</dt>
+                            <dd id="detail-stock" class="font-semibold text-slate-900"></dd>
+                        </div>
+                        <div class="flex justify-between gap-2">
+                            <dt class="text-slate-500">Waktu pickup</dt>
+                            <dd id="detail-pickup" class="font-semibold text-slate-700"></dd>
+                        </div>
+                    </dl>
+                    <a id="detail-public-link" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100">
+                        Lihat halaman publik (Browse)
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Modal hapus -->
         <div id="modal-mystery-delete" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
             <div class="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
@@ -304,6 +596,8 @@
                 const storeUrl = @json(route('mitra.mystery-boxes.store', $restaurant));
                 const placeholderImg = @json($placeholderImg);
                 const updateUrl = (id) => @json(url('/mitra/restaurants/'.$restaurant->id.'/mystery-boxes')).replace(/\/+$/, '') + '/' + id;
+                const publicBoxUrl = (menuId) => @json(url('/boxes')) + '/mitra-menu-' + menuId;
+
 
                 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -320,6 +614,147 @@
 
                 function openModal(el) { el.classList.remove('hidden'); el.classList.add('flex'); }
                 function closeModal(el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+
+                window.__mitraDashboardData = {
+                    menus: @json($mitraStatsMenusPayload),
+                    stats: @json($stats),
+                };
+                const modalStatsOverview = document.getElementById('modal-mitra-stats-overview');
+
+                function getMitraDashData() {
+                    return window.__mitraDashboardData || { menus: [], stats: {} };
+                }
+
+                function renderStatsOverviewModal(focusKey) {
+                    const { menus, stats } = getMitraDashData();
+                    const s = stats && typeof stats === 'object' ? stats : {};
+                    const totalBoxes = Number(s.total_boxes) || 0;
+                    const totalStock = Number(s.total_stock) || 0;
+                    const rev = Number(s.revenue_estimate) || 0;
+                    const avgSav = Number(s.avg_savings) || 0;
+
+                    document.getElementById('overview-recap-boxes').textContent = String(totalBoxes);
+                    document.getElementById('overview-recap-stock').textContent = String(totalStock);
+                    document.getElementById('overview-recap-revenue').textContent = formatRp(rev);
+                    document.getElementById('overview-recap-avg').textContent = formatRp(avgSav);
+
+                    const tbody = document.getElementById('mitra-stats-breakdown-tbody');
+                    const foot = document.getElementById('mitra-stats-breakdown-foot');
+                    tbody.replaceChildren();
+                    foot.replaceChildren();
+
+                    if (!menus.length) {
+                        const tr = document.createElement('tr');
+                        const td = document.createElement('td');
+                        td.colSpan = 7;
+                        td.className = 'px-4 py-8 text-center text-sm text-slate-500';
+                        td.textContent = 'Belum ada mystery box. Tambahkan dari bagian “Mystery Box Saya”.';
+                        tr.appendChild(td);
+                        tbody.appendChild(tr);
+                        return;
+                    }
+
+                    let sumStock = 0;
+                    let sumSub = 0;
+                    menus.forEach((m, idx) => {
+                        const st = Number(m.stock) || 0;
+                        const pr = Number(m.price) || 0;
+                        const orig = Number(m.original_price) || 0;
+                        const sub = Math.round(pr * st);
+                        sumStock += st;
+                        sumSub += sub;
+                        const pct = typeof m.savings_percent === 'number' ? m.savings_percent : 0;
+
+                        const tr = document.createElement('tr');
+                        tr.className = 'border-b border-slate-100';
+
+                        const td0 = document.createElement('td');
+                        td0.className = 'px-3 py-2 text-slate-500';
+                        td0.textContent = String(idx + 1);
+                        tr.appendChild(td0);
+
+                        const td1 = document.createElement('td');
+                        td1.className = 'px-3 py-2 font-medium text-slate-900';
+                        td1.textContent = m.name || '—';
+                        tr.appendChild(td1);
+
+                        const td2 = document.createElement('td');
+                        td2.className = 'px-3 py-2 text-right tabular-nums';
+                        td2.textContent = String(st);
+                        tr.appendChild(td2);
+
+                        const td3 = document.createElement('td');
+                        td3.className = 'px-3 py-2 text-right tabular-nums';
+                        td3.textContent = formatRp(pr);
+                        tr.appendChild(td3);
+
+                        const td4 = document.createElement('td');
+                        td4.className = 'px-3 py-2 text-right tabular-nums text-slate-600';
+                        td4.textContent = formatRp(orig);
+                        tr.appendChild(td4);
+
+                        const td5 = document.createElement('td');
+                        td5.className = 'px-3 py-2 text-right tabular-nums text-orange-600';
+                        td5.textContent = pct + '%';
+                        tr.appendChild(td5);
+
+                        const td6 = document.createElement('td');
+                        td6.className = 'px-3 py-2 text-right font-semibold tabular-nums text-emerald-700';
+                        td6.textContent = formatRp(sub);
+                        tr.appendChild(td6);
+
+                        tbody.appendChild(tr);
+                    });
+
+                    const trf = document.createElement('tr');
+                    const tdf0 = document.createElement('td');
+                    tdf0.colSpan = 2;
+                    tdf0.className = 'px-3 py-3 font-bold text-slate-800';
+                    tdf0.textContent = 'Total';
+                    trf.appendChild(tdf0);
+                    const tdfStock = document.createElement('td');
+                    tdfStock.className = 'px-3 py-3 text-right font-bold tabular-nums text-slate-900';
+                    tdfStock.textContent = String(sumStock);
+                    trf.appendChild(tdfStock);
+                    const tdfMid = document.createElement('td');
+                    tdfMid.colSpan = 3;
+                    tdfMid.className = 'px-3 py-3 text-right text-slate-400';
+                    tdfMid.textContent = '';
+                    trf.appendChild(tdfMid);
+                    const tdfSub = document.createElement('td');
+                    tdfSub.className = 'px-3 py-3 text-right font-black tabular-nums text-emerald-700';
+                    tdfSub.textContent = formatRp(sumSub);
+                    trf.appendChild(tdfSub);
+                    foot.appendChild(trf);
+                }
+
+                function openStatsOverview(focusKey) {
+                    renderStatsOverviewModal(focusKey);
+                    openModal(modalStatsOverview);
+                    const map = {
+                        boxes: 'stat-section-boxes',
+                        stock: 'stat-section-stock',
+                        revenue: 'stat-section-revenue',
+                        avg: 'stat-section-avg',
+                    };
+                    const id = map[focusKey] || 'stat-section-boxes';
+                    requestAnimationFrame(() => {
+                        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    });
+                }
+
+                document.getElementById('mitra-stats')?.addEventListener('click', (e) => {
+                    const card = e.target.closest('[data-stat-card]');
+                    if (!card) return;
+                    openStatsOverview(card.getAttribute('data-stat-card') || 'boxes');
+                });
+                document.getElementById('mitra-stats')?.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    const card = e.target.closest('[data-stat-card]');
+                    if (!card) return;
+                    e.preventDefault();
+                    openStatsOverview(card.getAttribute('data-stat-card') || 'boxes');
+                });
 
                 document.querySelectorAll('.modal-close').forEach(btn => {
                     btn.addEventListener('click', () => {
@@ -363,8 +798,44 @@
                     formCreate.reset();
                 });
 
-                const modalEdit = $('#modal-mystery-edit');
+                const modalDetail = $('#modal-mystery-detail');
+
+                function savingsPct(m) {
+                    if (typeof m.savings_percent === 'number' && !Number.isNaN(m.savings_percent)) {
+                        return m.savings_percent;
+                    }
+                    const o = Number(m.original_price) || 0;
+                    const p = Number(m.price) || 0;
+                    if (o <= 0) return 0;
+                    return Math.round((1 - p / o) * 100);
+                }
+
+                function openDetail(m) {
+                    const pct = savingsPct(m);
+                    $('#detail-img').src = m.image_url || placeholderImg;
+                    $('#detail-img').alt = m.name || '';
+                    $('#detail-name').textContent = m.name || '';
+                    const catEl = $('#detail-category');
+                    if (m.category) {
+                        catEl.textContent = m.category;
+                        catEl.classList.remove('hidden');
+                    } else {
+                        catEl.textContent = '';
+                        catEl.classList.add('hidden');
+                    }
+                    $('#detail-description').textContent = m.description || m.category || '—';
+                    $('#detail-price').textContent = formatRp(m.price);
+                    $('#detail-original').textContent = formatRp(m.original_price);
+                    $('#detail-hemat').textContent = pct + '%';
+                    $('#detail-stock').textContent = String(m.stock ?? 0) + ' unit';
+                    $('#detail-pickup').textContent = m.pickup_time || '—';
+                    const link = $('#detail-public-link');
+                    link.href = publicBoxUrl(m.id);
+                    openModal(modalDetail);
+                }
+
                 const formEdit = $('#form-mystery-edit');
+                const modalEdit = $('#modal-mystery-edit');
 
                 function openEdit(m) {
                     $('#edit-menu-id').value = m.id;
@@ -380,19 +851,22 @@
                 }
 
                 document.getElementById('mystery-grid')?.addEventListener('click', (e) => {
-                    const editBtn = e.target.closest('.btn-edit-mystery');
-                    if (editBtn) {
-                        const card = editBtn.closest('.mystery-card');
+                    if (e.target.closest('.btn-edit-mystery')) {
+                        e.stopPropagation();
+                        const editBtn = e.target.closest('.btn-edit-mystery');
+                        const card = editBtn?.closest('.mystery-card');
                         if (!card?.dataset.menu) return;
                         try {
                             openEdit(JSON.parse(card.dataset.menu));
                         } catch (err) {
                             console.error(err);
                         }
+                        return;
                     }
-                    const delBtn = e.target.closest('.btn-delete-mystery');
-                    if (delBtn) {
-                        const card = delBtn.closest('.mystery-card');
+                    if (e.target.closest('.btn-delete-mystery')) {
+                        e.stopPropagation();
+                        const delBtn = e.target.closest('.btn-delete-mystery');
+                        const card = delBtn?.closest('.mystery-card');
                         if (!card?.dataset.menu) return;
                         try {
                             const m = JSON.parse(card.dataset.menu);
@@ -404,6 +878,14 @@
                         } catch (err) {
                             console.error(err);
                         }
+                        return;
+                    }
+                    const card = e.target.closest('.mystery-card');
+                    if (!card?.dataset.menu) return;
+                    try {
+                        openDetail(JSON.parse(card.dataset.menu));
+                    } catch (err) {
+                        console.error(err);
                     }
                 });
 

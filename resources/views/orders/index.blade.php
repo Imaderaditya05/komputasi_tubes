@@ -44,6 +44,8 @@
                                 data-order-row="{{ $order->public_order_id }}"
                                 data-payment-status="{{ $order->payment_status }}"
                                 data-fulfillment-status="{{ $order->fulfillment_status }}"
+                                data-fulfillment-method="{{ $order->fulfillment_method }}"
+                                data-pickup-validation-status="{{ $order->pickup_validation_status }}"
                             >
                                 <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
                                     <div>
@@ -52,14 +54,20 @@
                                     </div>
                                     <span
                                         data-order-fulfillment-badge
-                                        class="inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-black ring-1 {{ $fulfillmentBadgeClass($order->payment_status, $order->fulfillment_status) }}"
+                                        class="inline-flex shrink-0 rounded-full px-3 py-1 text-xs font-black ring-1 {{ $fulfillmentBadgeClass($order->payment_status, $order->fulfillment_status, $order->pickup_validation_status, $order->fulfillment_method) }}"
                                     >
-                                        {{ $fulfillmentBadge($order->payment_status, $order->fulfillment_status) }}
+                                        {{ $fulfillmentBadge($order->payment_status, $order->fulfillment_status, $order->pickup_validation_status, $order->fulfillment_method) }}
                                     </span>
                                 </div>
                                 <h3 class="text-xl font-black text-[#1e2939]">{{ $order->box_title }}</h3>
                                 <p class="mt-1 text-sm font-medium text-[#6a7282]">{{ $order->restaurant_name }}</p>
                                 <div class="mt-4 flex flex-wrap gap-2">
+                                    <span class="inline-flex rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-[#364153] ring-1 ring-slate-100" title="Saat pesanan dibuat">
+                                        Checkout: {{ $order->created_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '—' }}
+                                    </span>
+                                    <span class="inline-flex rounded-xl bg-white px-3 py-2 text-xs font-bold text-[#364153] ring-1 ring-slate-200">
+                                        × {{ max(1, (int) ($order->item_quantity ?? 1)) }}
+                                    </span>
                                     <span class="inline-flex rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 ring-1 ring-emerald-100">
                                         {{ $order->pickup_time ?: '—' }}
                                     </span>
@@ -97,7 +105,13 @@
                                     </div>
                                     <div class="flex flex-wrap gap-2">
                                         @if ($order->reviewed)
-                                            <span class="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-900 ring-1 ring-amber-200">Reviewed</span>
+                                            <span class="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-900 ring-1 ring-amber-200">
+                                                @if ($order->customer_rating)
+                                                    ★ {{ (int) $order->customer_rating }}/5
+                                                @else
+                                                    Reviewed
+                                                @endif
+                                            </span>
                                         @endif
                                         <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-800 ring-1 ring-emerald-200">Selesai</span>
                                     </div>
@@ -106,7 +120,10 @@
                                 <p class="mt-1 text-sm font-medium text-[#6a7282]">{{ $order->restaurant_name }}</p>
                                 <div class="mt-4 flex flex-wrap gap-2">
                                     <span class="inline-flex rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-[#364153] ring-1 ring-slate-100">
-                                        {{ $order->created_at->translatedFormat('Y-m-d') }}
+                                        Checkout: {{ $order->created_at?->timezone(config('app.timezone'))->format('d/m/Y H:i') ?? '—' }}
+                                    </span>
+                                    <span class="inline-flex rounded-xl bg-white px-3 py-2 text-xs font-bold text-[#364153] ring-1 ring-slate-200">
+                                        × {{ max(1, (int) ($order->item_quantity ?? 1)) }}
                                     </span>
                                     <span class="inline-flex rounded-xl bg-orange-50 px-3 py-2 text-xs font-bold text-orange-900 ring-1 ring-orange-100">
                                         {{ $paymentMethodLabel($order->payment_method) }}

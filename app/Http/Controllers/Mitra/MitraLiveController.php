@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Mitra;
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\Restaurant;
+use App\Services\MitraRestaurantFeedbackService;
+use App\Services\MitraSalesAnalyticsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,15 +18,29 @@ class MitraLiveController extends Controller
     public static function fingerprintForRestaurant(Restaurant $restaurant): string
     {
         $menus = $restaurant->menus()->orderByDesc('id')->get();
-        $maxOrderAt = $restaurant->orders()->max('updated_at');
-        $ordersCount = (int) $restaurant->orders()->count();
+        $checkoutTouch = '';
+
+        /** @var MitraRestaurantFeedbackService $svc */
+        $svc = app(MitraRestaurantFeedbackService::class);
+        $q = $svc->checkoutOrdersQuery($restaurant);
+        $checkoutMax = $q->max('updated_at');
+        $checkoutCount = $svc->checkoutOrdersCount($restaurant);
+        if ($menus->count() > 0) {
+            $checkoutTouch = (string) $checkoutMax.'|'.$checkoutCount;
+        }
+
+        $salesTouch = app(MitraSalesAnalyticsService::class)->paidOrdersFingerprint($restaurant);
 
         return md5(implode('|', [
+            (string) $restaurant->updated_at,
+            (string) ($restaurant->access_status ?? 'active'),
             (string) $menus->max('updated_at'),
             (string) $menus->count(),
-            (string) $menus->sum(fn ($m) => (int) $m->stock),
-            (string) $maxOrderAt,
-            (string) $ordersCount,
+            (string) $menus->sum(fn ($m) => (int) ($m->ratings_count ?? 0)),
+            (string) $menus->sum(fn ($m) => (float) ($m->avg_rating ?? 0)),
+            (string) $menus->sum(fn ($m) => (int) ($m->stock ?? 0)),
+            $checkoutTouch,
+            $salesTouch,
         ]));
     }
 
@@ -32,10 +48,21 @@ class MitraLiveController extends Controller
     {
         abort_unless($restaurant->user_id === $request->user()->id, 403);
 
+        if (($restaurant->access_status ?? 'active') === 'locked') {
+            return response()->json([
+                'error' => 'access_locked',
+                'message' => 'Akses restoran ditahan admin.',
+            ], 403);
+        }
+
         $menus = $restaurant->menus()->orderByDesc('id')->get();
         $stats = MitraDashboardController::computeStatsStatic($menus);
         $hash = self::fingerprintForRestaurant($restaurant);
-        $ordersCount = (int) $restaurant->orders()->count();
+        $ordersCount = app(MitraRestaurantFeedbackService::class)->checkoutOrdersCount($restaurant);
+
+        $salesSvc = app(MitraSalesAnalyticsService::class);
+        $salesPeriod = $salesSvc->sanitizePeriod($request->query('sales_period'));
+        $sales = $salesSvc->buildPayload($restaurant, $salesPeriod);
 
         $menusPayload = $menus->map(static function (Menu $m): array {
             return [
@@ -49,6 +76,8 @@ class MitraLiveController extends Controller
                 'pickup_time' => $m->pickup_time,
                 'image_url' => $m->image_url,
                 'savings_percent' => $m->savingsPercent(),
+                'avg_rating' => $m->avg_rating !== null ? (float) $m->avg_rating : null,
+                'ratings_count' => (int) ($m->ratings_count ?? 0),
             ];
         })->values()->all();
 
@@ -58,6 +87,7 @@ class MitraLiveController extends Controller
             'menus' => $menusPayload,
             'menus_count' => $menus->count(),
             'orders_count' => $ordersCount,
+            'sales' => $sales,
         ]);
     }
 }

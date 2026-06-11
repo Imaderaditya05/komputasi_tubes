@@ -23,6 +23,11 @@
             </div>
 
             <div class="border-b border-emerald-100 bg-[#f0fdf4] px-5 py-5 ring-1 ring-inset ring-emerald-200/80 sm:px-6">
+                @php
+                    $checkoutQty = max(1, (int) ($state['item_quantity'] ?? 1));
+                    $unitPrice = (int) $box['price'];
+                    $lineTotal = $unitPrice * $checkoutQty;
+                @endphp
                 <div class="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
                     <div>
                         <div class="text-sm font-bold text-[#166534]">Ringkasan pesanan</div>
@@ -36,6 +41,10 @@
                                 <span class="font-bold">{{ $box['title'] }}</span>
                             </div>
                             <div class="flex justify-between gap-4 text-[#364153]">
+                                <span class="text-[#6a7282]">Jumlah</span>
+                                <span class="font-bold">{{ $checkoutQty }} × {{ $money($unitPrice) }}</span>
+                            </div>
+                            <div class="flex justify-between gap-4 text-[#364153]">
                                 <span class="text-[#6a7282]">Pickup Time</span>
                                 <span class="font-bold">{{ $box['pickup_time'] }}</span>
                             </div>
@@ -43,7 +52,7 @@
                     </div>
                     <div class="border-t border-emerald-200/80 pt-4 sm:border-0 sm:pt-0 sm:text-right">
                         <div class="text-xs font-bold uppercase tracking-wide text-[#6a7282]">Total</div>
-                        <div class="text-2xl font-black text-[#00a63e]">{{ $money($box['price']) }}</div>
+                        <div class="text-2xl font-black text-[#00a63e]">{{ $money($lineTotal) }}</div>
                     </div>
                 </div>
             </div>

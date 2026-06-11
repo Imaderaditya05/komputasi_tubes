@@ -23,7 +23,7 @@
             <span class="font-black text-[#00a63e]" title="{{ $order->midtrans_transaction_id ?? '—' }}">{{ $trx }}</span>
         </td>
         <td class="px-4 py-5 align-middle font-bold text-[#1e2939]">{{ $order->public_order_id }}</td>
-        <td class="px-4 py-5 align-middle font-bold text-[#1e2939]">{{ $order->user?->name ?? $order->customer?->name ?? '—' }}</td>
+        <td class="px-4 py-5 align-middle font-bold text-[#1e2939]">{{ $order->customer?->name ?? $order->user?->name ?? ($order->customer_email ? explode('@', $order->customer_email)[0] : '—') }}</td>
         <td class="px-4 py-5 align-middle font-semibold text-[#4a5565]">{{ $order->restaurant_name }}</td>
         <td class="px-4 py-5 align-middle font-black text-[#00a63e]">{{ $money((int) $order->amount_idr) }}</td>
         <td class="px-4 py-5 align-middle">
@@ -36,9 +36,6 @@
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-[#ffedd5] px-3 py-1.5 text-sm font-black text-[#f54900]"><x-sb.icon name="clock" class="h-4 w-4" /> Pending</span>
             @else
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-[#fee2e2] px-3 py-1.5 text-sm font-black text-[#e7000b]"><x-sb.icon name="x-circle" class="h-4 w-4" /> Failed</span>
-            @endif
-            @if ($order->payment_status)
-                <span class="mt-1 block text-xs font-semibold text-slate-500">{{ $order->payment_status }}</span>
             @endif
         </td>
         <td class="px-4 py-5 align-middle">

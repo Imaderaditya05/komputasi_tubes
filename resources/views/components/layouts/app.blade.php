@@ -137,6 +137,27 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                             </svg>
                         </a>
+                        @php($notifBellCount = max(0, (int) ($customerUnreadNotifCount ?? 0)))
+                        <a
+                            href="{{ route('notifications.index') }}"
+                            class="sb-hover-icon-btn relative flex h-12 w-12 items-center justify-center rounded-full bg-[#f3f4f6] text-[#364153] ring-1 ring-black/5 hover:bg-[#e5e7eb] sm:h-14 sm:w-14"
+                            aria-label="Notifikasi"
+                            data-customer-notif-live="1"
+                            data-notifications-url="{{ route('api.live.notifications') }}"
+                            data-patch-read-prefix="{{ url('/notifications') }}"
+                        >
+                            <svg class="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 01-6 0h6zm-3-17v.01V0z" />
+                            </svg>
+                            @if ($notifBellCount > 0)
+                                <span
+                                    data-customer-notif-badge
+                                    class="absolute -right-0.5 -top-0.5 flex h-6 min-w-[1.35rem] items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[11px] font-black text-white ring-2 ring-white"
+                                >
+                                    {{ $notifBellCount > 99 ? '99+' : $notifBellCount }}
+                                </span>
+                            @endif
+                        </a>
                         <a href="{{ route('orders.index') }}" class="sb-hover-icon-btn flex h-12 w-12 items-center justify-center rounded-full bg-[#f3f4f6] text-[#364153] ring-1 ring-black/5 hover:bg-[#e5e7eb] sm:h-14 sm:w-14" aria-label="Riwayat pesanan">
                             <svg class="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -144,6 +165,25 @@
                         </a>
                     @endif
                     @if ($isLoggedIn && $isMitra && $laravelUser)
+                        <a
+                            href="{{ route('mitra.notifications.index') }}"
+                            class="sb-hover-icon-btn relative flex h-12 w-12 items-center justify-center rounded-full bg-[#f3f4f6] text-[#364153] ring-1 ring-black/5 hover:bg-[#e5e7eb] sm:h-14 sm:w-14"
+                            aria-label="Notifikasi mitra"
+                            data-mitra-notif-live="1"
+                            data-mitra-notifications-url="{{ route('mitra.api.live.notifications') }}"
+                        >
+                            <svg class="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 01-6 0h6zm-3-17v.01V0z" />
+                            </svg>
+                            @if (($mitraUnreadNotifCount ?? 0) > 0)
+                                <span
+                                    data-mitra-notif-badge
+                                    class="absolute -right-0.5 -top-0.5 flex h-6 min-w-[1.35rem] items-center justify-center rounded-full bg-[#ef4444] px-1.5 text-[11px] font-black text-white ring-2 ring-white"
+                                >
+                                    {{ $mitraUnreadNotifCount > 99 ? '99+' : $mitraUnreadNotifCount }}
+                                </span>
+                            @endif
+                        </a>
                         <details class="sb-dropdown relative z-[60]">
                             <summary class="flex cursor-pointer items-center gap-1.5 rounded-full bg-gradient-to-r from-[#00a63e] to-[#00bc7d] px-3 py-2 text-sm font-bold text-white shadow-md shadow-emerald-900/15 sm:gap-2 sm:px-4 sm:py-2.5">
                                 @if ($headerAvatarUrl)
@@ -172,6 +212,7 @@
                                     </div>
                                 </div>
                                 <a href="{{ route('profile.show') }}" class="block px-4 py-2.5 text-sm font-semibold text-[#364153] hover:bg-slate-50">Profil akun</a>
+                                <a href="{{ route('mitra.notifications.index') }}" class="block px-4 py-2.5 text-sm font-semibold text-[#364153] hover:bg-slate-50">Notifikasi</a>
                                 <a href="{{ route('mitra.dashboard') }}" class="block px-4 py-2.5 text-sm font-semibold text-[#364153] hover:bg-slate-50">Dashboard mitra</a>
                                 <form method="post" action="{{ route('logout') }}" class="border-t border-slate-100">
                                     @csrf
@@ -206,6 +247,7 @@
                                     </div>
                                 </div>
                                 <a href="{{ route('profile.show') }}" class="block px-4 py-2.5 text-sm font-semibold text-[#364153] hover:bg-slate-50">Profil akun</a>
+                                <a href="{{ route('notifications.index') }}" class="block px-4 py-2.5 text-sm font-semibold text-[#364153] hover:bg-slate-50">Notifikasi</a>
                                 <a href="{{ route('wishlist.index') }}" class="block px-4 py-2.5 text-sm font-semibold text-[#364153] hover:bg-slate-50">Wishlist</a>
                                 <a href="{{ route('orders.index') }}" class="block px-4 py-2.5 text-sm font-semibold text-[#364153] hover:bg-slate-50">Riwayat pesanan</a>
                                 <a href="{{ route('cart.index') }}" class="block px-4 py-2.5 text-sm font-semibold text-[#364153] hover:bg-slate-50">Keranjang belanja</a>
@@ -264,6 +306,7 @@
                     {{ session('status') }}
                 </div>
             @endif
+            <x-feedback.validation-summary />
             {{ $slot }}
         </main>
     @else
@@ -287,6 +330,29 @@
                     </nav>
 
                     <div class="flex items-center gap-2">
+                        @if ($isLoggedIn && $isMitra && $laravelUser)
+                            <a
+                                href="{{ route('mitra.notifications.index') }}"
+                                class="relative hidden rounded-full bg-white/15 px-3 py-2 text-white ring-1 ring-white/20 hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:inline-flex items-center gap-2"
+                                aria-label="Notifikasi mitra"
+                                data-mitra-notif-live="1"
+                                data-mitra-notifications-url="{{ route('mitra.api.live.notifications') }}"
+                            >
+                                <svg class="h-5 w-5 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 01-6 0h6z" />
+                                </svg>
+                                <span class="text-sm font-bold">Notifikasi</span>
+                                @if (($mitraUnreadNotifCount ?? 0) > 0)
+                                    <span
+                                        data-mitra-notif-badge
+                                        class="absolute -right-1 -top-1 flex min-h-[1.25rem] min-w-[1.25rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-black text-gray-900 ring-2 ring-emerald-600"
+                                    >
+                                        {{ $mitraUnreadNotifCount > 99 ? '99+' : $mitraUnreadNotifCount }}
+                                    </span>
+                                @endif
+                            </a>
+                        @endif
+
                         @if ($isAdmin)
                             <a href="{{ route('admin.dashboard') }}"
                                class="hidden rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/20 sm:inline-flex">
@@ -295,9 +361,20 @@
                         @endif
 
                         @if ($isLoggedIn)
-                            <span class="hidden rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 sm:inline-flex">
-                                {{ $auth['name'] ?? 'User' }}
-                            </span>
+                            @if ($laravelUser)
+                                <a
+                                    href="{{ route('profile.show') }}"
+                                    class="hidden items-center rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:inline-flex"
+                                    title="Profil akun"
+                                    aria-label="Buka halaman profil akun"
+                                >
+                                    <span class="max-w-[12rem] truncate">{{ $headerDisplayName }}</span>
+                                </a>
+                            @else
+                                <span class="hidden rounded-full bg-white/15 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 sm:inline-flex">
+                                    {{ $auth['name'] ?? 'Pengguna' }}
+                                </span>
+                            @endif
                             <form method="post" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit"
@@ -326,6 +403,7 @@
                     {{ session('status') }}
                 </div>
             @endif
+            <x-feedback.validation-summary />
             {{ $slot }}
         </main>
     @endif
@@ -396,5 +474,6 @@
     @if ($variant === 'marketing')
         <x-scripts.marketing-motion />
     @endif
+    @stack('body-scripts')
 </body>
 </html>

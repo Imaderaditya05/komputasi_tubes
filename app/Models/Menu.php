@@ -22,6 +22,8 @@ class Menu extends Model
         'stock',
         'pickup_time',
         'image_url',
+        'avg_rating',
+        'ratings_count',
     ];
 
     protected function casts(): array
@@ -30,6 +32,8 @@ class Menu extends Model
             'price' => 'decimal:2',
             'original_price' => 'decimal:2',
             'stock' => 'integer',
+            'avg_rating' => 'decimal:2',
+            'ratings_count' => 'integer',
         ];
     }
 

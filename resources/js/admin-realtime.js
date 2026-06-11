@@ -84,17 +84,28 @@ async function runTransactions() {
 
 async function runRestaurants() {
     const qs = window.location.search || '';
-    const data = await fetchJson(`${BASE}/restaurants${qs}`);
-    if (data.stats) {
-        setText('rt-rest-total', new Intl.NumberFormat('id-ID').format(data.stats.total_restaurants));
-        setText('rt-rest-boxes', new Intl.NumberFormat('id-ID').format(data.stats.total_boxes));
-        setText('rt-rest-active', new Intl.NumberFormat('id-ID').format(data.stats.active));
-        setText('rt-rest-pending', new Intl.NumberFormat('id-ID').format(data.stats.pending));
+    const banner = document.getElementById('rt-restaurants-fetch-banner');
+    try {
+        const data = await fetchJson(`${BASE}/restaurants${qs}`);
+        if (banner) {
+            banner.classList.add('hidden');
+        }
+        if (data.stats) {
+            setText('rt-rest-total', new Intl.NumberFormat('id-ID').format(data.stats.total_restaurants));
+            setText('rt-rest-boxes', new Intl.NumberFormat('id-ID').format(data.stats.total_boxes));
+            setText('rt-rest-active', new Intl.NumberFormat('id-ID').format(data.stats.active));
+            setText('rt-rest-pending', new Intl.NumberFormat('id-ID').format(data.stats.pending));
+            setText('rt-rest-locked', new Intl.NumberFormat('id-ID').format(data.stats.locked));
+        }
+        if (data.grid_html) {
+            setHtml('rt-restaurants-grid', data.grid_html);
+        }
+        tickClock(data.updated_at);
+    } catch {
+        if (banner) {
+            banner.classList.remove('hidden');
+        }
     }
-    if (data.grid_html) {
-        setHtml('rt-restaurants-grid', data.grid_html);
-    }
-    tickClock(data.updated_at);
 }
 
 async function runUsers() {
@@ -108,6 +119,9 @@ async function runUsers() {
     }
     if (data.tbody_html) {
         setHtml('rt-users-tbody', data.tbody_html);
+    }
+    if (data.pagination_html !== undefined) {
+        setHtml('rt-users-pagination', data.pagination_html);
     }
     tickClock(data.updated_at);
 }

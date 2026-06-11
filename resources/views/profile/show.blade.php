@@ -10,7 +10,7 @@
         @endif
 
         <div class="mt-8 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm ring-1 ring-black/5 sm:p-8">
-            <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-5">
+            <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-5" novalidate>
                 @csrf
 
                 <div class="flex flex-col items-center gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-start">
@@ -72,7 +72,7 @@
                     </div>
                 </div>
 
-                <dialog id="profile-avatar-source-dialog" class="w-[min(100vw-2rem,22rem)] rounded-2xl border border-slate-200 bg-white p-0 shadow-xl ring-1 ring-black/5 backdrop:bg-black/40">
+                <dialog id="profile-avatar-source-dialog" class="sb-dialog-centered w-[min(100vw-2rem,22rem)] rounded-2xl border border-slate-200 bg-white p-0 shadow-xl ring-1 ring-black/5 backdrop:bg-black/40">
                     <div class="border-b border-slate-100 px-4 py-3">
                         <p class="text-sm font-black text-[#1e2939]">Sumber foto</p>
                         <p class="mt-0.5 text-xs text-[#6a7282]">Kamera atau file di perangkat</p>
@@ -90,7 +90,7 @@
                     </div>
                 </dialog>
 
-                <dialog id="profile-avatar-camera-dialog" class="w-[min(100vw-2rem,28rem)] rounded-2xl border border-slate-200 bg-white p-0 shadow-xl ring-1 ring-black/5 backdrop:bg-black/40">
+                <dialog id="profile-avatar-camera-dialog" class="sb-dialog-centered w-[min(100vw-2rem,28rem)] rounded-2xl border border-slate-200 bg-white p-0 shadow-xl ring-1 ring-black/5 backdrop:bg-black/40">
                     <div class="border-b border-slate-100 px-4 py-3">
                         <p class="text-sm font-black text-[#1e2939]">Kamera</p>
                         <p id="profile-camera-error" class="mt-1 hidden text-xs font-medium text-red-600"></p>
@@ -112,7 +112,7 @@
 
                 <canvas id="profile-camera-canvas" class="hidden" width="800" height="800"></canvas>
 
-                <dialog id="profile-avatar-lightbox" class="max-h-none w-[min(100vw-1rem,42rem)] border-0 bg-transparent p-0 shadow-none backdrop:bg-black/70">
+                <dialog id="profile-avatar-lightbox" class="sb-dialog-centered max-h-[min(92vh,100dvh)] w-[min(100vw-1rem,42rem)] max-w-[calc(100vw-2rem)] border-0 bg-transparent p-0 shadow-none backdrop:bg-black/70">
                     <div class="relative flex flex-col items-center gap-3 rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-white/10 sm:p-4">
                         <button
                             type="button"
@@ -382,7 +382,7 @@
                 </div>
 
                 <div>
-                    <label for="phone" class="block text-sm font-bold text-[#364153]">Nomor telepon</label>
+                    <label for="phone" class="block text-sm font-bold text-[#364153]">Nomor telepon <span class="text-red-600">*</span></label>
                     <input
                         type="tel"
                         name="phone"
@@ -391,7 +391,8 @@
                         maxlength="32"
                         placeholder="Contoh: 081234567890"
                         autocomplete="tel"
-                        class="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#1e2939] shadow-sm ring-1 ring-black/5 focus:border-[#00a63e] focus:outline-none focus:ring-2 focus:ring-[#00a63e]/25"
+                        required
+                        class="mt-1.5 block w-full rounded-xl border bg-white px-4 py-3 text-sm text-[#1e2939] shadow-sm ring-1 ring-black/5 focus:border-[#00a63e] focus:outline-none focus:ring-2 focus:ring-[#00a63e]/25 @error('phone') border-2 border-red-500 bg-red-50 @else border-slate-200 @enderror"
                     />
                     @error('phone')
                         <p class="mt-1 text-sm font-medium text-red-600">{{ $message }}</p>
@@ -399,14 +400,15 @@
                 </div>
 
                 <div>
-                    <label for="address" class="block text-sm font-bold text-[#364153]">Alamat</label>
+                    <label for="address" class="block text-sm font-bold text-[#364153]">Alamat <span class="text-red-600">*</span></label>
                     <textarea
                         name="address"
                         id="address"
                         rows="3"
                         maxlength="2000"
                         placeholder="Alamat lengkap (pengiriman / kontak)"
-                        class="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#1e2939] shadow-sm ring-1 ring-black/5 focus:border-[#00a63e] focus:outline-none focus:ring-2 focus:ring-[#00a63e]/25"
+                        required
+                        class="mt-1.5 block w-full rounded-xl border bg-white px-4 py-3 text-sm text-[#1e2939] shadow-sm ring-1 ring-black/5 focus:border-[#00a63e] focus:outline-none focus:ring-2 focus:ring-[#00a63e]/25 @error('address') border-2 border-red-500 bg-red-50 @else border-slate-200 @enderror"
                     >{{ old('address', $user->address) }}</textarea>
                     @if($user->role === 'mitra')
                         <p class="mt-1 text-xs text-[#6a7282]">Ini alamat akun Anda. Alamat toko diatur di bagian restoran di bawah.</p>
@@ -445,7 +447,7 @@
                         </div>
 
                         <div>
-                            <label for="restaurant_name" class="block text-sm font-bold text-[#364153]">Nama restoran</label>
+                            <label for="restaurant_name" class="block text-sm font-bold text-[#364153]">Nama restoran <span class="text-red-600">*</span></label>
                             <input
                                 type="text"
                                 name="restaurant_name"
@@ -453,7 +455,7 @@
                                 value="{{ old('restaurant_name', $restaurant->name) }}"
                                 required
                                 maxlength="255"
-                                class="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#1e2939] shadow-sm ring-1 ring-black/5 focus:border-[#00a63e] focus:outline-none focus:ring-2 focus:ring-[#00a63e]/25"
+                                class="mt-1.5 block w-full rounded-xl border bg-white px-4 py-3 text-sm text-[#1e2939] shadow-sm ring-1 ring-black/5 focus:border-[#00a63e] focus:outline-none focus:ring-2 focus:ring-[#00a63e]/25 @error('restaurant_name') border-2 border-red-500 bg-red-50 @else border-slate-200 @enderror"
                             />
                             @error('restaurant_name')
                                 <p class="mt-1 text-sm font-medium text-red-600">{{ $message }}</p>
@@ -475,14 +477,15 @@
                         </div>
 
                         <div>
-                            <label for="address_line" class="block text-sm font-bold text-[#364153]">Alamat toko</label>
+                            <label for="address_line" class="block text-sm font-bold text-[#364153]">Alamat toko <span class="text-red-600">*</span></label>
                             <textarea
                                 name="address_line"
                                 id="address_line"
                                 rows="2"
                                 maxlength="2000"
                                 placeholder="Contoh: Jl. Merdeka No. 10, Jakarta"
-                                class="mt-1.5 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#1e2939] shadow-sm ring-1 ring-black/5 focus:border-[#00a63e] focus:outline-none focus:ring-2 focus:ring-[#00a63e]/25"
+                                required
+                                class="mt-1.5 block w-full rounded-xl border bg-white px-4 py-3 text-sm text-[#1e2939] shadow-sm ring-1 ring-black/5 focus:border-[#00a63e] focus:outline-none focus:ring-2 focus:ring-[#00a63e]/25 @error('address_line') border-2 border-red-500 bg-red-50 @else border-slate-200 @enderror"
                             >{{ old('address_line', $restaurant->address_line) }}</textarea>
                             @error('address_line')
                                 <p class="mt-1 text-sm font-medium text-red-600">{{ $message }}</p>
@@ -559,4 +562,135 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Custom validation - AGGRESSIVE CLIENT SIDE VALIDATION
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form[action*="profile.update"]');
+            if (!form) return;
+
+            const requiredFields = {
+                'phone': 'Nomor telepon wajib diisi!',
+                'address': 'Alamat wajib diisi!',
+                'restaurant_name': 'Nama restoran wajib diisi!',
+                'address_line': 'Alamat toko wajib diisi!',
+            };
+
+            // Function to add error styling dan message
+            function showFieldError(fieldId, errorMessage) {
+                const field = document.getElementById(fieldId);
+                if (!field) return;
+
+                // Add error styling
+                field.classList.add('border-2', 'border-red-500', 'bg-red-50');
+                field.classList.remove('border-slate-200');
+
+                // Remove existing error message
+                const existingError = field.parentElement.querySelector('.field-error-message');
+                if (existingError) {
+                    existingError.remove();
+                }
+
+                // Add error message below field
+                const errorDiv = document.createElement('p');
+                errorDiv.className = 'field-error-message mt-2 text-base font-bold text-red-600';
+                errorDiv.textContent = '❌ ' + errorMessage;
+                field.parentElement.insertBefore(errorDiv, field.nextSibling);
+            }
+
+            // Function to remove error styling
+            function clearFieldError(fieldId) {
+                const field = document.getElementById(fieldId);
+                if (!field) return;
+
+                field.classList.remove('border-2', 'border-red-500', 'bg-red-50');
+                
+                // Restore original border color
+                if (field.classList.contains('border-slate-200') === false) {
+                    field.classList.add('border-slate-200');
+                }
+
+                // Remove error message
+                const errorDiv = field.parentElement.querySelector('.field-error-message');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+            }
+
+            // Add real-time validation on input
+            Object.keys(requiredFields).forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (!field) return;
+
+                field.addEventListener('input', function() {
+                    if (this.value.trim() === '') {
+                        showFieldError(fieldId, requiredFields[fieldId]);
+                    } else {
+                        clearFieldError(fieldId);
+                    }
+                });
+
+                field.addEventListener('change', function() {
+                    if (this.value.trim() === '') {
+                        showFieldError(fieldId, requiredFields[fieldId]);
+                    } else {
+                        clearFieldError(fieldId);
+                    }
+                });
+            });
+
+            // Form submit validation
+            form.addEventListener('submit', function(event) {
+                let hasErrors = false;
+                let firstErrorField = null;
+
+                Object.keys(requiredFields).forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (!field) return;
+
+                    if (!field.value.trim()) {
+                        hasErrors = true;
+                        showFieldError(fieldId, requiredFields[fieldId]);
+                        
+                        if (!firstErrorField) {
+                            firstErrorField = field;
+                        }
+                    } else {
+                        clearFieldError(fieldId);
+                    }
+                });
+
+                if (hasErrors) {
+                    event.preventDefault();
+
+                    // Scroll ke field error
+                    if (firstErrorField) {
+                        setTimeout(() => {
+                            firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstErrorField.focus();
+                        }, 100);
+                    }
+
+                    // Show banner alert
+                    const existingAlert = document.querySelector('.profile-validation-alert');
+                    if (existingAlert) {
+                        existingAlert.remove();
+                    }
+
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'profile-validation-alert fixed top-4 left-4 right-4 z-50 rounded-2xl border-2 border-red-600 bg-red-100 px-6 py-4 text-base font-bold text-red-700 shadow-2xl';
+                    alertDiv.innerHTML = '🚫 <strong>FIELD YANG MERAH HARUS DIISI!</strong><br><span style="font-size: 0.9rem; font-weight: normal; display: block; margin-top: 8px;">Lihat field dengan background MERAH dan isi semua yang wajib diisi.';
+                    
+                    document.body.insertBefore(alertDiv, document.body.firstChild);
+
+                    // Auto remove after 6 detik
+                    setTimeout(() => {
+                        if (alertDiv.parentElement) {
+                            alertDiv.remove();
+                        }
+                    }, 6000);
+                }
+            });
+        });
+    </script>
 </x-layouts.app>

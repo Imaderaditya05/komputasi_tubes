@@ -1,5 +1,12 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureCustomer;
+use App\Http\Middleware\EnsureMitraApproved;
+use App\Http\Middleware\EnsureMitraRestaurantNotAdminLocked;
+use App\Http\Middleware\EnsureRestaurantUnlocked;
+use App\Http\Middleware\MaintenanceMode;
+use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,14 +19,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureAdmin::class,
-            'customer' => \App\Http\Middleware\EnsureCustomer::class,
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-            'restaurant.unlocked' => \App\Http\Middleware\EnsureRestaurantUnlocked::class,
+            'admin' => EnsureAdmin::class,
+            'customer' => EnsureCustomer::class,
+            'role' => RoleMiddleware::class,
+            'restaurant.unlocked' => EnsureRestaurantUnlocked::class,
+            'mitra.restaurant.not_locked' => EnsureMitraRestaurantNotAdminLocked::class,
+            'mitra.approved' => EnsureMitraApproved::class,
         ]);
 
         $middleware->appendToGroup('web', [
-            \App\Http\Middleware\MaintenanceMode::class,
+            MaintenanceMode::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

@@ -62,4 +62,19 @@ return [
         'cacert_path' => env('MIDTRANS_CACERT_PATH', resource_path('certs/cacert.pem')),
     ],
 
+    /*
+    | Chat kurir (halaman lacak) — balasan via OpenAI jika OPENAI_API_KEY diset.
+    */
+    'openai' => [
+        'api_key' => trim((string) env('OPENAI_API_KEY', '')),
+        'model' => trim((string) env('OPENAI_MODEL', 'gpt-4o-mini')),
+    ],
+
+    /*
+    | Nomor telepon restoran / hotline untuk tombol "Hubungi restoran" (format internasional, mis. +6281234567890)
+    */
+    'surprisebite' => [
+        'restaurant_hotline' => trim((string) env('RESTAURANT_HOTLINE', '')),
+    ],
+
 ];

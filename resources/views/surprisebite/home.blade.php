@@ -142,8 +142,16 @@
                         $catLabel = $box['category_label'] ?? collect($categories)->firstWhere('id', $box['category'])['name'] ?? 'Box';
                         $cardRating = $box['card_rating'] ?? ($r['rating'] ?? 4.5);
                         $homeMenuWishlisted = in_array($box['slug'], $wishlistMenuSlugs ?? [], true);
+                        $stk = (int) ($box['stock'] ?? 0);
                     @endphp
-                    <article class="group sb-reveal sb-hover-lift overflow-hidden rounded-2xl bg-white shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] ring-1 ring-black/5">
+                    <article
+                        data-sb-catalog-card
+                        data-sb-box-slug="{{ $box['slug'] }}"
+                        @class([
+                            'group sb-reveal sb-hover-lift overflow-hidden rounded-2xl bg-white shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1)] ring-1 ring-black/5',
+                            'opacity-[0.92]' => $stk <= 0,
+                        ])
+                    >
                         <div class="relative h-56 w-full overflow-hidden sm:h-60">
                             <div class="absolute left-3 top-3 z-20">
                                 <x-wishlist.heart type="menu" :target-key="$box['slug']" :active="$homeMenuWishlisted" class="!h-9 !w-9" />
@@ -151,9 +159,19 @@
                             <a href="{{ route('boxes.show', ['slug' => $box['slug']]) }}" class="relative block h-full">
                                 <img src="{{ $box['image'] }}" alt="" class="sb-img-zoom h-full w-full object-cover" loading="lazy" width="800" height="600" />
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent"></div>
-                                @if (($box['stock'] ?? 99) <= 3)
-                                    <div class="absolute left-3 top-14 inline-flex items-center gap-1.5 rounded-full bg-[#e7000b] px-4 py-2 text-sm font-black text-white shadow-lg">
-                                        <x-sb.icon name="flame" class="h-4 w-4 text-white" /> Only {{ $box['stock'] }} left!
+                                @if ($stk > 0)
+                                    @if ($stk <= 3)
+                                        <div class="absolute left-3 top-14 z-10 inline-flex items-center gap-1.5 rounded-full bg-[#e7000b] px-4 py-2 text-sm font-black text-white shadow-lg">
+                                            <x-sb.icon name="flame" class="h-4 w-4 text-white" /> Sisa {{ $stk }}
+                                        </div>
+                                    @else
+                                        <div class="absolute left-3 top-14 z-10 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-sm font-black text-white shadow-lg">
+                                            Stok: {{ $stk }}
+                                        </div>
+                                    @endif
+                                @else
+                                    <div class="absolute left-3 top-14 z-10 inline-flex items-center gap-1.5 rounded-full bg-slate-700 px-4 py-2 text-sm font-black text-white shadow-lg">
+                                        Stok habis
                                     </div>
                                 @endif
                                 <div class="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#ff6900] to-[#fb2c36] px-3 py-1.5 text-sm font-black text-white shadow-lg">
@@ -161,36 +179,63 @@
                                     -{{ $discount }}%
                                 </div>
                                 <div class="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 text-sm font-bold text-[#0a0a0a] shadow-md">
-                                    <x-sb.icon name="star" class="h-4 w-4 text-amber-500" /> {{ number_format($cardRating, 1) }}
+                                    <x-sb.icon name="star" class="h-4 w-4 text-amber-500" /> {{ number_format($cardRating, 1) }}@if ((int) ($box['ratings_count'] ?? 0) > 0)<span class="text-[11px] font-semibold text-[#6a7282]">({{ $box['ratings_count'] }})</span>@endif
                                 </div>
                             </a>
                             </div>
-                            <a href="{{ route('boxes.show', ['slug' => $box['slug']]) }}" class="block">
                             <div class="p-5">
                                 <div class="flex flex-wrap items-center gap-2 text-sm">
                                     <span class="rounded-full bg-[#dcfce7] px-2.5 py-1 font-semibold text-[#008236]">{{ $catLabel }}</span>
                                     <span class="text-[#6a7282]">•</span>
-                                    <span class="flex items-center gap-1 text-[#6a7282]">
-                                        <x-sb.icon name="map-pin" class="h-3.5 w-3.5 shrink-0 text-[#6a7282]" /> {{ number_format($box['distance_km'], 1) }} km
+                                    <span class="flex items-center gap-1 text-[#6a7282]" role="presentation">
+                                        <x-sb.icon name="map-pin" class="h-3.5 w-3.5 shrink-0 text-[#6a7282]" aria-hidden="true" />
+                                        {{ number_format($box['distance_km'], 1) }} km
                                     </span>
                                 </div>
-                                <h3 class="mt-3 text-xl font-black text-[#1e2939]">{{ $box['title'] }}</h3>
-                                <p class="mt-1 text-sm text-[#4a5565]">{{ $r['name'] ?? 'Restaurant' }}</p>
+                                <h3 class="mt-3 text-xl font-black text-[#1e2939]">
+                                    <a
+                                        href="{{ route('boxes.show', ['slug' => $box['slug']]) }}"
+                                        class="text-inherit underline-offset-4 hover:text-[#00a63e] hover:underline focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00a63e]/40"
+                                        data-sb-box-detail>
+                                        {{ $box['title'] }}
+                                    </a>
+                                </h3>
+                                <p class="mt-1 text-sm text-[#4a5565]">
+                                    <a
+                                        href="{{ route('boxes.show', ['slug' => $box['slug']]) }}"
+                                        class="text-inherit underline-offset-4 hover:text-[#00a63e] hover:underline focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00a63e]/40">
+                                        {{ $r['name'] ?? 'Restaurant' }}
+                                    </a>
+                                </p>
+                                <p class="mt-2 text-xs font-bold {{ $stk > 0 ? 'text-emerald-700' : 'text-slate-500' }}">
+                                    @if ($stk > 0) Stok tersedia: {{ $stk }} @else Tidak tersedia (stok habis) @endif
+                                </p>
                                 <div class="mt-4 flex items-center gap-2 rounded-xl border border-[#ffd6a8] bg-[#fff7ed] px-3 py-3">
-                                    <x-sb.icon name="clock" class="h-5 w-5 shrink-0 text-[#c2410c]" />
+                                    <x-sb.icon name="clock" class="h-5 w-5 shrink-0 text-[#c2410c]" aria-hidden="true" />
                                     <span class="text-sm font-semibold text-[#364153]">{{ $box['pickup_time'] }}</span>
                                 </div>
-                                <div class="mt-5 flex items-center justify-between border-t-2 border-[#f3f4f6] pt-5">
+                                <div class="relative z-20 mt-5 flex items-center justify-between border-t-2 border-[#f3f4f6] pt-5">
                                     <div>
                                         <p class="text-xs font-medium text-[#99a1af] line-through">{{ $money($box['original_price']) }}</p>
                                         <p class="text-2xl font-black text-[#00a63e]">{{ $money($box['price']) }}</p>
                                     </div>
-                                    <span class="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#00a63e] to-[#00c950] px-5 py-2.5 text-base font-bold text-white shadow-md">
-                                        Grab It! <x-sb.icon name="crosshair" class="h-4 w-4 text-white" />
-                                    </span>
+                                    <a
+                                        href="{{ route('boxes.show', ['slug' => $box['slug']]) }}"
+                                        class="relative z-30 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#00a63e] to-[#00c950] px-5 py-2.5 text-base font-bold text-white shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#008236]/50 focus-visible:ring-offset-2"
+                                        data-sb-grab-it
+                                        data-sb-target="box-detail"
+                                        aria-label="{{ $box['title'] }} — Grab It, buka detail mystery box">
+                                        Grab It! <x-sb.icon name="crosshair" class="h-4 w-4 text-white" aria-hidden="true" />
+                                    </a>
                                 </div>
                             </div>
-                            </a>
+                            @auth
+                                @if(auth()->user()->role === 'customer' && isset(($pendingRatingBySlug ?? [])[$box['slug']]))
+                                    <div class="px-5 pb-5">
+                                        <x-browse.pending-rating :public-order-id="$pendingRatingBySlug[$box['slug']]" />
+                                    </div>
+                                @endif
+                            @endauth
                     </article>
                 @empty
                     <div class="col-span-full rounded-2xl bg-[#f8fafc] py-16 text-center text-[#4a5565]">
@@ -229,8 +274,8 @@
                             <div class="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#fdc700] to-[#ff8904] px-3 py-2 text-base font-black text-white shadow-lg">
                                 <x-sb.icon name="star" class="h-5 w-5 text-white" /> {{ number_format($r['rating'], 1) }}
                             </div>
-                            <div class="absolute bottom-3 left-4 flex items-center gap-2 text-base font-bold text-white">
-                                <x-sb.icon name="map-pin" class="h-5 w-5 shrink-0 text-white" /> {{ $r['area'] ?? $r['city'] }}
+                            <div class="absolute bottom-3 left-4 flex items-center gap-2 text-base font-bold text-white" role="presentation">
+                                <x-sb.icon name="map-pin" class="h-5 w-5 shrink-0 text-white" aria-hidden="true" /> {{ $r['area'] ?? $r['city'] }}
                             </div>
                         </div>
                         <div class="p-5">

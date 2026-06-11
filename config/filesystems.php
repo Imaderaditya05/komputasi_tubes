@@ -33,7 +33,9 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Jangan `serve: true` di disk ini: URI `/storage` harus mengarah ke disk `public`
+            // (storage/app/public), bukan ke folder private. Lihat ServeFile di Laravel 13.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -43,6 +45,7 @@ return [
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
+            'serve' => true,
             'throw' => false,
             'report' => false,
         ],

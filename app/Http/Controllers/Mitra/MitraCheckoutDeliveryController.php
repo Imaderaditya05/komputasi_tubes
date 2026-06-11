@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Mitra;
 
+use App\Http\Controllers\Concerns\AssertMitraRestaurantCheckoutOrder;
 use App\Http\Controllers\Controller;
 use App\Models\CheckoutOrder;
-use App\Models\Menu;
 use App\Models\Restaurant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,6 +12,8 @@ use Illuminate\View\View;
 
 class MitraCheckoutDeliveryController extends Controller
 {
+    use AssertMitraRestaurantCheckoutOrder;
+
     public function index(Request $request, Restaurant $restaurant): View
     {
         abort_unless($restaurant->user_id === $request->user()->id, 403);
@@ -57,19 +59,5 @@ class MitraCheckoutDeliveryController extends Controller
         ]);
 
         return back()->with('status', 'Posisi kurir diperbarui. Pelanggan akan melihatnya di peta secara realtime.');
-    }
-
-    private function assertCheckoutOrderBelongsToRestaurant(CheckoutOrder $order, Restaurant $restaurant): void
-    {
-        if (! str_starts_with($order->box_slug, 'mitra-menu-')) {
-            abort(404);
-        }
-
-        $menuId = (int) substr($order->box_slug, strlen('mitra-menu-'));
-        $menu = Menu::query()->find($menuId);
-
-        if ($menu === null || $menu->restaurant_id !== $restaurant->id) {
-            abort(403);
-        }
     }
 }

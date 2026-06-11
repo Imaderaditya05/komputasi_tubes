@@ -37,7 +37,7 @@ class AuthController extends Controller
         if ($user && in_array($user->role, ['seller', 'mitra'], true)) {
             return back()
                 ->withErrors([
-                    'email' => 'Email ini terdaftar sebagai mitra. Buka halaman Login Mitra untuk masuk.',
+                    'email' => 'Email ini terdaftar sebagai mitra. Buka Portal Mitra untuk masuk sebagai penjual.',
                 ])
                 ->withInput();
         }
@@ -46,7 +46,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             return redirect()->intended(route('home'))
-                ->with('status', 'Berhasil masuk. Selamat datang, ' . Auth::user()->name . '!');
+                ->with('status', 'Berhasil masuk. Selamat datang, '.Auth::user()->name.'!');
         }
 
         return back()
@@ -88,6 +88,11 @@ class AuthController extends Controller
             ->with('status', 'Akun berhasil dibuat. Silakan login dengan email dan password kamu.');
     }
 
+    public function showMitraPortal(): View
+    {
+        return view('auth.mitra-portal');
+    }
+
     public function showMitraRegister(): View
     {
         return view('auth.mitra-register');
@@ -115,11 +120,17 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => 'mitra',
+            'mitra_approval_status' => 'pending',
+            'mitra_approval_decided_at' => null,
         ]);
 
         return redirect()
             ->route('login.seller')
-            ->with('status', 'Akun mitra berhasil dibuat. Silakan login dengan email dan password Anda.');
+            ->with(
+                'status',
+                'Pendaftaran mitra Anda berhasil. Akun Anda berstatus menunggu persetujuan admin; proses ini biasanya memakan '
+                    .'1 sampai 3 hari kerja. Setelah disetujui, Anda dapat login dari halaman Portal Mitra.',
+            );
     }
 
     public function showAdminLogin(): View
@@ -136,7 +147,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || $user->role !== 'admin') {
+        if (! $user || $user->role !== 'admin') {
             return back()
                 ->withErrors(['email' => 'Email admin tidak ditemukan atau bukan akun admin.'])
                 ->withInput();
@@ -144,9 +155,10 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
             return redirect()
                 ->route('admin.dashboard')
-                ->with('status', 'Selamat datang di panel admin, ' . Auth::user()->name . '.');
+                ->with('status', 'Selamat datang di panel admin, '.Auth::user()->name.'.');
         }
 
         return back()
@@ -168,7 +180,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || $user->role !== 'mitra') {
+        if (! $user || $user->role !== 'mitra') {
             return back()
                 ->withErrors(['email' => 'Email mitra tidak ditemukan atau bukan akun mitra.'])
                 ->withInput();
@@ -176,9 +188,24 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
+            $authenticated = Auth::user();
+            if ($authenticated instanceof User && $authenticated->role === 'mitra' && ! $authenticated->mitraApprovedForPortal()) {
+                if (($authenticated->mitra_approval_status ?? '') === 'rejected') {
+                    return redirect()
+                        ->route('mitra.registration.status')
+                        ->with(
+                            'status',
+                            'Akun mitra Anda belum disetujui. Silakan hubungi admin SurpriseBite jika Anda merasa ini kesalahan.',
+                        );
+                }
+
+                return redirect()->route('mitra.registration.status');
+            }
+
             return redirect()
                 ->route('mitra.dashboard')
-                ->with('status', 'Selamat datang di Portal Mitra, ' . Auth::user()->name . '.');
+                ->with('status', 'Selamat datang di Portal Mitra, '.Auth::user()->name.'.');
         }
 
         return back()

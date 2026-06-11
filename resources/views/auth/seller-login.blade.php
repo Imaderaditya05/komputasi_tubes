@@ -30,6 +30,9 @@
                     <div class="mx-auto w-full max-w-md">
                         <h2 class="text-2xl font-black text-[#1e2939] sm:text-3xl">Login Mitra</h2>
                         <p class="mt-2 text-sm text-[#6a7282]">Gunakan akun mitra yang telah terdaftar.</p>
+                        <p class="mt-2 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2 text-xs font-semibold leading-relaxed text-amber-950">
+                            Jika baru mendaftar, akun Anda mungkin menunggu persetujuan admin (biasanya 1 sampai 3 hari kerja) sebelum dashboard mitra bisa diakses.
+                        </p>
 
                         @if (session('status'))
                             <div class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">

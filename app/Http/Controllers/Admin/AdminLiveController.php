@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\SurpriseBiteController;
-use App\Models\AdminRestaurant;
 use App\Models\CheckoutOrder;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\AdminUserListService;
+use App\Services\RestaurantManagementListingService;
 use App\Services\TransactionMonitoringService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 class AdminLiveController extends Controller
 {
@@ -108,40 +108,26 @@ class AdminLiveController extends Controller
     public function restaurants(Request $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));
-
-        $query = AdminRestaurant::query()->orderBy('sort_order')->orderBy('id');
-
-        if ($q !== '') {
-            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $q).'%';
-            $query->where(function ($w) use ($term): void {
-                $w->where('name', 'like', $term)
-                    ->orWhere('area', 'like', $term)
-                    ->orWhere('city', 'like', $term);
-            });
-        }
-
-        $list = $query->get();
-
-        $totalRestaurants = AdminRestaurant::count();
-        $totalBoxes = (int) AdminRestaurant::query()->get()->sum(function (AdminRestaurant $r) {
-            return is_array($r->boxes_json) ? count($r->boxes_json) : 0;
-        });
-        $activeCount = AdminRestaurant::where('status', 'active')->count();
-        $pendingCount = AdminRestaurant::where('status', 'pending')->count();
+        $filter = (string) $request->query('filter', 'all');
+        $filter = in_array($filter, ['all', 'active', 'pending', 'locked', 'with_boxes'], true) ? $filter : 'all';
+        $listingSvc = new RestaurantManagementListingService;
+        $entries = $listingSvc->entries($q, $filter);
+        $stats = $listingSvc->stats();
 
         $money = fn (int $n) => $this->fmtIdr($n);
 
         $gridHtml = view('surprisebite.admin.partials.restaurants-cards', [
-            'restaurants' => $list,
+            'entries' => $entries,
             'money' => $money,
         ])->render();
 
         return response()->json([
             'stats' => [
-                'total_restaurants' => $totalRestaurants,
-                'total_boxes' => $totalBoxes,
-                'active' => $activeCount,
-                'pending' => $pendingCount,
+                'total_restaurants' => $stats['total_restaurants'],
+                'total_boxes' => $stats['total_boxes'],
+                'active' => $stats['active'],
+                'pending' => $stats['pending'],
+                'locked' => $stats['locked'],
             ],
             'grid_html' => $gridHtml,
             'updated_at' => now()->toIso8601String(),
@@ -150,53 +136,26 @@ class AdminLiveController extends Controller
 
     public function users(Request $request): JsonResponse
     {
-        $q = trim((string) $request->query('q', ''));
-        $roleFilter = $request->query('role');
-        $roleFilter = in_array($roleFilter, ['customer', 'seller', 'mitra', 'admin'], true) ? $roleFilter : null;
-
-        $base = User::query()->orderByDesc('created_at');
-
-        if ($q !== '') {
-            $term = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $q).'%';
-            $base->where(function ($w) use ($term): void {
-                $w->where('name', 'like', $term)->orWhere('email', 'like', $term);
-            });
-        }
-
-        if ($roleFilter) {
-            $base->where('role', $roleFilter);
-        }
-
-        $users = $base->paginate(20)->withQueryString();
-
-        $orderCounts = [];
-        if (Schema::hasTable('checkout_orders')) {
-            foreach ($users as $u) {
-                $orderCounts[$u->id] = CheckoutOrder::where('customer_email', $u->email)->count();
-            }
-        }
-
-        $activeUsers = Schema::hasColumn('users', 'is_active')
-            ? User::where(function ($q): void {
-                $q->where('is_active', true)->orWhereNull('is_active');
-            })->count()
-            : User::count();
-
-        $stats = [
-            'total' => User::count(),
-            'customers' => User::where('role', 'customer')->count(),
-            'sellers' => User::whereIn('role', ['seller', 'mitra'])->count(),
-            'active' => $activeUsers,
-        ];
+        $listSvc = new AdminUserListService;
+        $data = $listSvc->paginatedForAdmin($request);
+        $users = $data['users'];
+        $orderCounts = $data['orderCounts'];
+        $stats = $listSvc->stats();
 
         $tbodyHtml = view('surprisebite.admin.partials.users-tbody', [
             'users' => $users,
             'orderCounts' => $orderCounts,
+            'authUserId' => auth()->id(),
+        ])->render();
+
+        $paginationHtml = view('surprisebite.admin.partials.users-pagination-fragment', [
+            'users' => $users,
         ])->render();
 
         return response()->json([
             'stats' => $stats,
             'tbody_html' => $tbodyHtml,
+            'pagination_html' => $paginationHtml,
             'updated_at' => now()->toIso8601String(),
         ]);
     }

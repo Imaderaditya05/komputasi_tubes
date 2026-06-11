@@ -32,10 +32,12 @@ class CartAfterPaymentService
             return;
         }
 
-        if ($item->quantity <= 1) {
+        $paidQty = max(1, (int) ($order->item_quantity ?? 1));
+
+        if ($item->quantity <= $paidQty) {
             $item->delete();
         } else {
-            $item->decrement('quantity');
+            $item->decrement('quantity', $paidQty);
         }
     }
 }

@@ -9,6 +9,7 @@ class AdminRestaurant extends Model
     protected $fillable = [
         'slug',
         'name',
+        'owner_name',
         'area',
         'city',
         'rating',
@@ -31,5 +32,30 @@ class AdminRestaurant extends Model
             'sort_order' => 'integer',
             'boxes_json' => 'array',
         ];
+    }
+
+    /**
+     * @return array{label: string, classes: string}
+     */
+    public function mitraAccessBadge(): array
+    {
+        return match ($this->status) {
+            'locked' => [
+                'label' => '🔒 Locked',
+                'classes' => 'bg-red-500 text-white shadow',
+            ],
+            'pending' => [
+                'label' => 'Pending',
+                'classes' => 'bg-amber-500 text-white shadow',
+            ],
+            'active' => [
+                'label' => '✓ Unlocked',
+                'classes' => 'bg-emerald-500 text-white shadow',
+            ],
+            default => [
+                'label' => 'Pending',
+                'classes' => 'bg-amber-500 text-white shadow',
+            ],
+        };
     }
 }

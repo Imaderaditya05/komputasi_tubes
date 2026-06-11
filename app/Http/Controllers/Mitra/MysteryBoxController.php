@@ -83,6 +83,8 @@ class MysteryBoxController extends Controller
             'image_url' => $menu->image_url,
             'savings_percent' => $menu->savingsPercent(),
             'savings_amount' => $menu->savingsAmount(),
+            'avg_rating' => $menu->avg_rating !== null ? (float) $menu->avg_rating : null,
+            'ratings_count' => (int) ($menu->ratings_count ?? 0),
         ];
     }
 }

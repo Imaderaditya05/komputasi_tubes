@@ -104,7 +104,7 @@ class PaymentController extends Controller
             return back()->with(
                 'error',
                 'Midtrans belum dikonfigurasi. Isi MIDTRANS_SERVER_KEY dan MIDTRANS_CLIENT_KEY di .env '
-                . '(sandbox: aktifkan Sandbox di dashboard, salin SB-Mid-server-* dan SB-Mid-client-*), lalu php artisan config:clear.'
+                .'(sandbox: aktifkan Sandbox di dashboard, salin SB-Mid-server-* dan SB-Mid-client-*), lalu php artisan config:clear.'
             );
         }
 
@@ -114,10 +114,13 @@ class PaymentController extends Controller
         }
 
         try {
+            $qty = max(1, (int) ($order->item_quantity ?? 1));
+            $gross = (int) $order->amount_idr;
+
             $params = [
                 'transaction_details' => [
                     'order_id' => $order->public_order_id,
-                    'gross_amount' => (int) $order->amount_idr,
+                    'gross_amount' => $gross,
                 ],
                 'customer_details' => [
                     'first_name' => explode(' ', $order->customer?->name ?? 'Customer')[0],
@@ -126,9 +129,9 @@ class PaymentController extends Controller
                 'item_details' => [
                     [
                         'id' => $order->box_slug,
-                        'price' => (int) $order->amount_idr,
+                        'price' => $gross,
                         'quantity' => 1,
-                        'name' => mb_substr($order->box_title, 0, 50),
+                        'name' => mb_substr($order->box_title.' ×'.$qty, 0, 50),
                     ],
                 ],
                 'callbacks' => [
@@ -149,7 +152,7 @@ class PaymentController extends Controller
             // Redirect ke halaman pembayaran Midtrans Snap
             return redirect($transaction->redirect_url);
         } catch (\Exception $e) {
-            \Log::error('Midtrans checkout error: ' . $e->getMessage(), ['exception' => $e]);
+            \Log::error('Midtrans checkout error: '.$e->getMessage(), ['exception' => $e]);
             $msg = $e->getMessage();
             if (str_contains($msg, '401') || str_contains(strtolower($msg), 'unauthorized')) {
                 $sandbox = ! config('services.midtrans.is_production', false);
@@ -158,7 +161,7 @@ class PaymentController extends Controller
                     : ' — Production: salin Mid-server-* & Mid-client-* dari mode Production. php artisan config:clear';
             }
 
-            return back()->with('error', 'Gagal membuat transaksi: ' . $msg);
+            return back()->with('error', 'Gagal membuat transaksi: '.$msg);
         }
     }
 
@@ -237,7 +240,7 @@ class PaymentController extends Controller
 
             $order = CheckoutOrder::where('public_order_id', $order_id)->first();
             if (! $order) {
-                \Log::warning('Order not found for order_id: ' . $order_id);
+                \Log::warning('Order not found for order_id: '.$order_id);
 
                 return response()->json(['error' => 'Order not found'], 404);
             }
@@ -257,7 +260,7 @@ class PaymentController extends Controller
 
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {
-            \Log::error('Webhook error: ' . $e->getMessage(), ['exception' => $e]);
+            \Log::error('Webhook error: '.$e->getMessage(), ['exception' => $e]);
 
             return response()->json(['error' => $e->getMessage()], 500);
         }

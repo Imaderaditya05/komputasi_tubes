@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Mitra;
 
 use App\Http\Controllers\Controller;
+use App\Models\Menu;
+use App\Models\MitraAccessAppeal;
 use App\Models\Restaurant;
+use App\Services\MitraSalesAnalyticsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -14,14 +17,35 @@ class MitraDashboardController extends Controller
     {
         $user = $request->user();
         $restaurants = Restaurant::where('user_id', $user->id)->orderBy('id')->get();
+
+        $lockedRestaurant = $restaurants->first(function (Restaurant $r) {
+            return ($r->access_status ?? 'active') === 'locked';
+        });
+
+        if ($lockedRestaurant instanceof Restaurant) {
+            $lastAppeal = MitraAccessAppeal::query()
+                ->where('restaurant_id', $lockedRestaurant->id)
+                ->orderByDesc('id')
+                ->first();
+
+            return view('mitra.access-blocked', [
+                'restaurant' => $lockedRestaurant,
+                'lastAppeal' => $lastAppeal,
+            ]);
+        }
+
         $restaurant = $restaurants->first();
 
         $menus = collect();
         $stats = self::emptyStats();
+        $sales = [];
+        $salesSvc = app(MitraSalesAnalyticsService::class);
+        $salesPeriod = $salesSvc->sanitizePeriod($request->query('sales_period'));
 
         if ($restaurant) {
             $menus = $restaurant->menus()->orderByDesc('id')->get();
             $stats = self::computeStatsStatic($menus);
+            $sales = $salesSvc->buildPayload($restaurant, $salesPeriod);
         }
 
         $mitraLiveHash = $restaurant
@@ -34,11 +58,13 @@ class MitraDashboardController extends Controller
             'menus' => $menus,
             'stats' => $stats,
             'mitraLiveHash' => $mitraLiveHash,
+            'sales' => $sales,
+            'salesPeriod' => $salesPeriod,
         ]);
     }
 
     /**
-     * @param  Collection<int, \App\Models\Menu>  $menus
+     * @param  Collection<int, Menu>  $menus
      * @return array{total_boxes: int, total_stock: int, revenue_estimate: float, avg_savings: int}
      */
     public static function computeStatsStatic(Collection $menus): array

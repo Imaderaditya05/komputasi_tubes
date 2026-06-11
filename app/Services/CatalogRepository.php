@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AdminRestaurant;
 use App\Models\Menu;
 use App\Models\Restaurant;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 class CatalogRepository
@@ -17,7 +18,10 @@ class CatalogRepository
         $parts = [];
         if (Schema::hasTable('mitra_menus')) {
             $parts[] = (string) Menu::query()->max('updated_at');
-            $parts[] = (string) Menu::query()->where('stock', '>', 0)->count();
+            $parts[] = (string) Menu::query()->count();
+            if (Schema::hasColumn('mitra_menus', 'ratings_count')) {
+                $parts[] = (string) Menu::query()->sum('ratings_count');
+            }
         }
         if (Schema::hasTable('mitra_restaurants')) {
             $parts[] = (string) Restaurant::query()->max('updated_at');
@@ -58,7 +62,6 @@ class CatalogRepository
 
         $menus = Menu::query()
             ->with('restaurant')
-            ->where('stock', '>', 0)
             ->orderBy('id')
             ->get();
 
@@ -73,10 +76,20 @@ class CatalogRepository
             if (! $restaurant instanceof Restaurant) {
                 continue;
             }
+            if (Schema::hasColumn('mitra_restaurants', 'access_status')
+                && ($restaurant->access_status ?? 'active') !== 'active') {
+                continue;
+            }
             $catalog['restaurants'][] = $this->mitraRestaurantToRow($restaurant, $menusGroup->count(), $menusGroup);
         }
 
         foreach ($menus as $menu) {
+            $restaurant = $menu->restaurant;
+            if ($restaurant instanceof Restaurant
+                && Schema::hasColumn('mitra_restaurants', 'access_status')
+                && ($restaurant->access_status ?? 'active') !== 'active') {
+                continue;
+            }
             $catalog['boxes'][] = $this->mitraMenuToBox($menu);
         }
 
@@ -84,7 +97,7 @@ class CatalogRepository
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Menu>  $menusGroup
+     * @param  Collection<int, Menu>  $menusGroup
      */
     private function mitraRestaurantToRow(Restaurant $restaurant, int $boxCount, $menusGroup): array
     {
@@ -103,7 +116,7 @@ class CatalogRepository
             'name' => $restaurant->name,
             'area' => '',
             'city' => '',
-            'rating' => 4.6,
+            'rating' => $this->mitraRestaurantWeightedRating($menusGroup),
             'tags' => [],
             'subtitle' => $restaurant->description ?? '',
             'image' => $cover?->image_url ?? '',
@@ -118,6 +131,9 @@ class CatalogRepository
     {
         $filterKey = $this->normalizeMitraFilterKey($menu->category);
         $catLabel = filled($menu->category) ? $menu->category : 'Mystery';
+        $avg = $menu->avg_rating;
+        $rCount = (int) ($menu->ratings_count ?? 0);
+        $cardRating = $avg !== null ? (float) $avg : 4.6;
 
         return [
             'slug' => 'mitra-menu-'.$menu->id,
@@ -126,7 +142,8 @@ class CatalogRepository
             'category' => $filterKey,
             'category_label' => $catLabel,
             'filter_key' => $filterKey,
-            'card_rating' => 4.6,
+            'card_rating' => $cardRating,
+            'ratings_count' => $rCount,
             'image' => $menu->image_url ?: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&q=80',
             'price' => (int) $menu->price,
             'original_price' => (int) max((float) $menu->original_price, (float) $menu->price),
@@ -162,6 +179,30 @@ class CatalogRepository
         }
 
         return 'restaurant';
+    }
+
+    /**
+     * Rating toko mitra = rata-rata tertimbang dari semua ulasan per menu.
+     *
+     * @param  Collection<int, Menu>  $menusGroup
+     */
+    private function mitraRestaurantWeightedRating(Collection $menusGroup): float
+    {
+        $sumWeighted = 0.0;
+        $sumCount = 0;
+        foreach ($menusGroup as $m) {
+            $c = (int) ($m->ratings_count ?? 0);
+            if ($c > 0 && $m->avg_rating !== null) {
+                $sumWeighted += (float) $m->avg_rating * $c;
+                $sumCount += $c;
+            }
+        }
+
+        if ($sumCount === 0) {
+            return 4.6;
+        }
+
+        return round($sumWeighted / $sumCount, 2);
     }
 
     /**
@@ -297,8 +338,7 @@ class CatalogRepository
                 'badge' => 'Hot',
                 'distance_km' => 1.2,
                 'stock' => 12,
-                'description' =>
-                    'Kombinasi roti & pastry yang masih layak konsumsi. Isi bervariasi tiap hari (surprise!).',
+                'description' => 'Kombinasi roti & pastry yang masih layak konsumsi. Isi bervariasi tiap hari (surprise!).',
                 'highlights' => [
                     'Fresh hari ini (sisa produksi)',
                     'Dikemas higienis',
@@ -320,8 +360,7 @@ class CatalogRepository
                 'badge' => 'New',
                 'distance_km' => 1.8,
                 'stock' => 10,
-                'description' =>
-                    'Pastry, sandwich mini, dan minuman surprise dari sisa stok layak konsumsi hari ini.',
+                'description' => 'Pastry, sandwich mini, dan minuman surprise dari sisa stok layak konsumsi hari ini.',
                 'highlights' => ['Perfect for coffee lovers', 'Campuran sweet & savory'],
             ],
             [
@@ -339,8 +378,7 @@ class CatalogRepository
                 'badge' => 'Premium',
                 'distance_km' => 2.2,
                 'stock' => 2,
-                'description' =>
-                    'Pilihan roll & sashimi sisa layak konsumsi dari dapur — surprise setiap hari.',
+                'description' => 'Pilihan roll & sashimi sisa layak konsumsi dari dapur — surprise setiap hari.',
                 'highlights' => ['Ikan segar', 'Standar higiene tinggi'],
             ],
             [
@@ -358,8 +396,7 @@ class CatalogRepository
                 'badge' => 'Value',
                 'distance_km' => 2.5,
                 'stock' => 3,
-                'description' =>
-                    'Mie + side menu pilihan chef (makanan sisa layak konsumsi yang tersisa hari itu).',
+                'description' => 'Mie + side menu pilihan chef (makanan sisa layak konsumsi yang tersisa hari itu).',
                 'highlights' => ['Porsi kenyang', 'Bumbu khas', 'Dukung pengurangan food waste'],
             ],
             [
@@ -377,8 +414,7 @@ class CatalogRepository
                 'badge' => 'Fresh',
                 'distance_km' => 3.1,
                 'stock' => 20,
-                'description' =>
-                    'Salad/healthy bowl yang tersisa dari batch harian, masih segar dan layak konsumsi.',
+                'description' => 'Salad/healthy bowl yang tersisa dari batch harian, masih segar dan layak konsumsi.',
                 'highlights' => ['Segar', 'Topping bervariasi', 'Lebih ramah bumi'],
             ],
             [
@@ -396,8 +432,7 @@ class CatalogRepository
                 'badge' => 'Hot',
                 'distance_km' => 5.2,
                 'stock' => 15,
-                'description' =>
-                    'Slice & side Italian surprise dari oven kayu — sisa layak konsumsi dengan harga hemat.',
+                'description' => 'Slice & side Italian surprise dari oven kayu — sisa layak konsumsi dengan harga hemat.',
                 'highlights' => ['Keju melt', 'Crust wood-fired'],
             ],
         ];
@@ -415,7 +450,11 @@ class CatalogRepository
         $restaurants = [];
         $boxes = [];
 
-        foreach (AdminRestaurant::query()->orderBy('sort_order')->orderBy('id')->get() as $ar) {
+        foreach (AdminRestaurant::query()
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get() as $ar) {
             $boxList = is_array($ar->boxes_json) ? $ar->boxes_json : [];
             $mapQuery = trim(implode(', ', array_filter([
                 $ar->name,

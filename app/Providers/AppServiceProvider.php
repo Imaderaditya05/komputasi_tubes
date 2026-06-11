@@ -2,8 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\CheckoutOrder;
+use App\Models\CustomerNotification;
+use App\Models\MitraNotification;
 use App\Models\WishlistItem;
+use App\Observers\CheckoutOrderObserver;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -24,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        CheckoutOrder::observe(CheckoutOrderObserver::class);
+
         $cacert = config('services.midtrans.cacert_path');
         if (is_string($cacert) && $cacert !== '' && is_file($cacert)) {
             ini_set('openssl.cafile', $cacert);
@@ -31,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Carbon::setLocale('id');
+
+        App::setLocale('id');
 
         View::composer(['surprisebite.admin.*', 'components.layouts.admin'], function ($view): void {
             $u = Auth::user();
@@ -62,6 +71,33 @@ class AppServiceProvider extends ServiceProvider
             }
             $view->with('wishlistRestaurantKeys', $wishlistRestaurantKeys);
             $view->with('wishlistMenuSlugs', $wishlistMenuSlugs);
+
+            $customerUnreadNotifCount = 0;
+            $uNotify = Auth::user();
+            if (
+                $uNotify
+                && $uNotify->role === 'customer'
+                && Schema::hasTable('customer_notifications')
+            ) {
+                $customerUnreadNotifCount = (int) CustomerNotification::query()
+                    ->where('user_id', $uNotify->id)
+                    ->whereNull('read_at')
+                    ->count();
+            }
+            $view->with('customerUnreadNotifCount', $customerUnreadNotifCount);
+
+            $mitraUnreadNotifCount = 0;
+            if (
+                $uNotify
+                && $uNotify->role === 'mitra'
+                && Schema::hasTable('mitra_notifications')
+            ) {
+                $mitraUnreadNotifCount = (int) MitraNotification::query()
+                    ->where('user_id', $uNotify->id)
+                    ->whereNull('read_at')
+                    ->count();
+            }
+            $view->with('mitraUnreadNotifCount', $mitraUnreadNotifCount);
         });
     }
 }

@@ -33,9 +33,10 @@
 
     <label for="admin-nav-toggle" class="fixed inset-0 z-20 bg-slate-900/50 opacity-0 pointer-events-none transition peer-checked:opacity-100 peer-checked:pointer-events-auto lg:hidden"></label>
 
-    <div class="flex min-h-screen">
+    {{-- peer-checked harus menarget child aside: .peer ~ … > aside (aside bukan sibling langsung checkbox) --}}
+    <div class="flex min-h-screen peer-checked:[&>aside]:translate-x-0">
         {{-- Sidebar --}}
-        <aside class="fixed left-0 top-0 z-30 flex h-full w-[260px] flex-col border-r border-slate-700/60 bg-[#0f172a] text-slate-200 shadow-2xl transition-transform duration-200 -translate-x-full peer-checked:translate-x-0 lg:static lg:translate-x-0">
+        <aside class="fixed left-0 top-0 z-30 flex h-full w-[260px] flex-col border-r border-slate-700/60 bg-[#0f172a] text-slate-200 shadow-2xl transition-transform duration-200 -translate-x-full lg:static lg:translate-x-0">
             <div class="flex h-16 items-center gap-3 border-b border-slate-700/60 px-5 transition hover:opacity-90">
                 <img src="{{ asset('images/logo.png') }}?v={{ time() }}" alt="SurpriseBite Logo" class="h-8 w-auto object-contain rounded-lg bg-white p-1 ring-1 ring-white/20 shadow-sm" />
                 <div class="leading-tight mt-1">
@@ -44,7 +45,7 @@
                 <label for="admin-nav-toggle" class="ml-auto flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-slate-800 text-slate-300 lg:hidden hover:bg-slate-700" aria-label="Tutup menu"><x-sb.icon name="x-mark" class="h-5 w-5" /></label>
             </div>
 
-            <nav class="flex flex-1 flex-col gap-1 p-3">
+            <nav class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
                 <p class="px-3 pb-2 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Menu</p>
                 <a href="{{ route('admin.dashboard') }}"
                    class="admin-sidebar-link flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition {{ $active === 'dashboard' ? 'bg-[#00a63e] text-white shadow-md shadow-emerald-900/30' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -85,17 +86,29 @@
                 </a>
             </nav>
 
-            <div class="border-t border-slate-700/60 p-4">
-                <div class="rounded-xl bg-slate-800/80 px-3 py-3 ring-1 ring-slate-700/50">
-                    <div class="text-xs font-bold text-white">{{ $auth['name'] ?? 'Admin' }}</div>
-                    <div class="mt-0.5 truncate text-[11px] text-slate-400">{{ $auth['email'] ?? '' }}</div>
-                    <form method="post" action="{{ route('logout') }}" class="mt-3">
-                        @csrf
-                        <button type="submit" class="w-full rounded-lg bg-slate-700 py-2 text-xs font-bold text-white transition hover:bg-slate-600">
-                            Logout
-                        </button>
-                    </form>
-                </div>
+            <div class="shrink-0 border-t border-slate-700/60 p-4">
+                <details class="group rounded-xl bg-slate-800/80 ring-1 ring-slate-700/50 open:ring-emerald-500/40">
+                    <summary class="flex cursor-pointer list-none items-center gap-2 rounded-xl px-3 py-3 text-left outline-none ring-emerald-500/50 marker:content-none hover:bg-slate-700/30 focus-visible:ring-2 [&::-webkit-details-marker]:hidden">
+                        <span class="flex min-w-0 flex-1 flex-col">
+                            <span class="text-xs font-bold text-white">{{ $auth['name'] ?? 'Admin' }}</span>
+                            <span class="mt-0.5 truncate text-[11px] text-slate-400">{{ $auth['email'] ?? '' }}</span>
+                        </span>
+                        <svg class="h-4 w-4 shrink-0 text-slate-400 transition group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <div class="space-y-2 border-t border-slate-700/50 px-3 pb-3 pt-2">
+                        <a href="{{ route('profile.show') }}" class="admin-sidebar-link block rounded-lg px-2 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-700/50 hover:text-white">
+                            Profil akun
+                        </a>
+                        <form method="post" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="w-full rounded-lg bg-slate-700 py-2 text-xs font-bold text-white transition hover:bg-slate-600">
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                </details>
             </div>
         </aside>
 
@@ -129,6 +142,7 @@
                         {{ session('status') }}
                     </div>
                 @endif
+                <x-feedback.validation-summary tone="admin" />
                 {{ $slot }}
             </main>
         </div>

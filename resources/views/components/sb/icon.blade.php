@@ -182,6 +182,18 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 3.75h6M9 6.75h3.375a1.125 1.125 0 0 1 1.125 1.125V19.5a1.5 1.5 0 0 1-1.5 1.5H6.75a1.5 1.5 0 0 1-1.5-1.5V6a1.5 1.5 0 0 1 1.5-1.5h1.5Z"/>
         </svg>
         @break
+    @case('pencil-square')
+        <svg {{ $attributes->merge(['class' => $svgClass]) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18 12h.008v.008H18V12Zm0 4.5h.008v.008H18V16.5Zm-9 0h.008v.008H9V16.5Z"/>
+        </svg>
+        @break
+    @case('trash')
+        <svg {{ $attributes->merge(['class' => $svgClass]) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18 16.5a3 3 0 0 1-3 3h-6a3 3 0 0 1-3-3l-.47-7.27m13.18 0a48.05 48.05 0 0 0-4.44 0m4.44 0 .93-1.74a1.5 1.5 0 0 0-1.07-2.06l-1.64-.22m-6.34 0a48.05 48.05 0 0 1-4.44 0m0 0-.93-1.74a1.5 1.5 0 0 1 1.07-2.06l1.64-.22"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9h4.5m-4.5 0a3 3 0 0 1-.66-1.85V6.75m5.25 2.25v-1.5A3 3 0 0 0 12 4.5h-.75A3 3 0 0 0 8.25 6.75v.4a3 3 0 0 1-.66 1.85"/>
+        </svg>
+        @break
     @case('x-mark')
         <svg {{ $attributes->merge(['class' => $svgClass]) }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>

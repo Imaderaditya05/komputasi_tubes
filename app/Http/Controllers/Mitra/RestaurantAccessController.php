@@ -11,9 +11,17 @@ use Illuminate\View\View;
 
 class RestaurantAccessController extends Controller
 {
-    public function showUnlockForm(Request $request, Restaurant $restaurant): View
+    public function showUnlockForm(Request $request, Restaurant $restaurant): View|RedirectResponse
     {
         abort_unless($restaurant->user_id === $request->user()->id, 403, 'Unauthorized');
+
+        if (($restaurant->access_status ?? 'active') === 'locked') {
+            return redirect()
+                ->route('mitra.dashboard')
+                ->withErrors([
+                    'access' => 'Akses restoran ditahan admin. Pengelolaan toko tidak tersedia dari PIN.',
+                ]);
+        }
 
         return view('mitra.restaurants.unlock', compact('restaurant'));
     }
@@ -22,12 +30,21 @@ class RestaurantAccessController extends Controller
     {
         abort_unless($restaurant->user_id === $request->user()->id, 403, 'Unauthorized');
 
+        if (($restaurant->access_status ?? 'active') === 'locked') {
+            return redirect()
+                ->route('mitra.dashboard')
+                ->withErrors([
+                    'access' => 'Akses restoran ditahan admin.',
+                ]);
+        }
+
         $request->validate([
             'pin' => 'required|string',
         ]);
 
         if (Hash::check($request->pin, $restaurant->pin)) {
-            $request->session()->put('unlocked_restaurant_' . $restaurant->id, true);
+            $request->session()->put('unlocked_restaurant_'.$restaurant->id, true);
+
             return redirect()->route('mitra.restaurants.manage', $restaurant);
         }
 
@@ -38,7 +55,7 @@ class RestaurantAccessController extends Controller
     {
         abort_unless($restaurant->user_id === $request->user()->id, 403, 'Unauthorized');
 
-        $request->session()->forget('unlocked_restaurant_' . $restaurant->id);
+        $request->session()->forget('unlocked_restaurant_'.$restaurant->id);
 
         return redirect()->route('mitra.dashboard')->with('status', 'Restoran berhasil dikunci.');
     }

@@ -21,6 +21,21 @@ html:has(body.sb-marketing-canvas) {
     scroll-behavior: smooth;
 }
 
+/**
+ * Pusatkan <dialog> modal — Tailwind Preflight meng-nol-kan margin, sehingga
+ * showModal() tidak lagi mengikuti centering bawaan browser (muncul kiri atas).
+ */
+dialog.sb-dialog-centered:modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    max-height: min(92vh, 100dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
 @media (prefers-reduced-motion: reduce) {
     html:has(body.sb-marketing-canvas) {
         scroll-behavior: auto;
