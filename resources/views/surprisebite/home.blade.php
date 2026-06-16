@@ -11,7 +11,7 @@
             {{ session('error') }}
         </div>
     @endif
-    {{-- Hero — Figma node 32:114 --}}
+    <!-- {{-- Hero — Figma node 32:114 --}}
     <section class="sb-hero-sheen relative mt-4 overflow-hidden rounded-2xl shadow-2xl shadow-emerald-900/30 sm:mt-5 sm:rounded-3xl"
              style="background: linear-gradient(145deg, #022c22 0%, #006b29 55%, #c2410c 100%);">
         <div class="pointer-events-none absolute inset-0 overflow-hidden text-white/15">
@@ -49,7 +49,7 @@
                 <span aria-hidden="true">→</span>
             </a>
         </div>
-    </section>
+    </section> -->
 
     {{-- Our Impact Together — Figma 32:158 --}}
     <section id="impact" class="relative mt-0 overflow-hidden rounded-b-3xl bg-white py-16 sm:py-20">
